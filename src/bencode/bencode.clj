@@ -126,14 +126,11 @@
 
 ;;; Bencoding
 
-(defn byteseq
-  "Accepts a string, returns a sequence of bytes."
-  [s]
-  (map #(-> % int byte) s))
-
 (defn char->byte
   [c]
   (byte (int c)))
+
+(def byteseq (partial map char->byte))
 
 (defprotocol Bencodable
   (-encode [data]))
@@ -151,8 +148,10 @@
 
 (extend-protocol Bencodable
   String
-  (-encode [string]
-    (byteseq (str (count string) \: string)))
+  (-encode [^String string]
+    (let [bytes (.getBytes string "ISO-8859-1")
+          len (.getBytes (str (count bytes) \:) "ISO-8859-1")]
+      (concat len bytes)))
 
   Long
   (-encode [n]
