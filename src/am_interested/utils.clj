@@ -2,26 +2,27 @@
   (:require [clojure.walk :as walk]
             [clojure.string :as string]))
 
+(defn maybe-apply
+  "Applies f to val if (pred val) is truthy. Otherwise,
+  returns val."
+  [pred f val]
+  (if (pred val) (f val) val))
+
 (defn map-keys
   "Recursively maps a function onto the keys of a map."
   [f m]
-  (walk/postwalk (fn [x]
-                   (if (map? x)
-                     (into {} (map (fn [[k v]] [(f k) v]) x))
-                     x))
-                 m))
+  (let [mapper (fn [[k v]] [(f k) v])
+        walker (fn [x]
+                 (maybe-apply map? #(into {} (map mapper %)) x))]
+    (walk/postwalk walker m)))
 
 (defn string->keyword
   [k]
-  (if (string? k)
-    (keyword (string/replace k " " "-"))
-    k))
+  (maybe-apply string? #(keyword (string/replace % " " "-")) k))
 
 (defn keyword->string
   [k]
-  (if (keyword? k)
-    (string/replace (name k) "-" " ")
-    k))
+  (maybe-apply keyword? #(string/replace (name %) "-" " ") k))
 
 (def keywordize-keys (partial map-keys string->keyword))
 (def stringify-keys (partial map-keys keyword->string))
