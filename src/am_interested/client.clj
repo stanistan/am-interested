@@ -1,7 +1,8 @@
 (ns am-interested.client
   (:require [am-interested.utils :as utils]
             [bencode.bencode :as bencode]
-            [clj-http.client :as request]))
+            [clj-http.client :as request]
+            [clojure.string :as string]))
 
 (defn tracker-request
   "Makes a request to a tracker given a map of query-params. Exceptions
@@ -34,9 +35,23 @@
      :left (get-in metainfo-map [:info :length])
      :compact 1}))
 
+(defn to-ip-and-port
+  [s]
+  (let [[ip [a b]] (partition-all 4 (map int s))]
+    {:ip (string/join "." ip)
+     :port (+ b (* 256 a))}))
+
+(defn prep-peers
+  [peers]
+  (utils/apply-if (complement vector?) #(mapv to-ip-and-port (partition 6 %)) peers))
+
 (defn request-torrent-info
   "Given the metainfo decoded from a .torrent file, makes a request
   to the tracker for torrent info."
   [metainfo]
-  (tracker-request (:announce metainfo)
-                   (torrent->tracker-params metainfo)))
+  (-> (:announce metainfo)
+    (tracker-request (torrent->tracker-params metainfo))
+    (:body)
+    (bencode/decode)
+    (utils/keywordize-keys)
+    (update-in [:peers] prep-peers)))
