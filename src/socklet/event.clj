@@ -1,8 +1,8 @@
-(ns socklet.event)
+(ns socklet.event
+  (:require [socklet.utils :as utils]))
 
 (defn listen-for
   [f & args]
   (future
-    (loop []
-      (apply f args)
-      (recur))))
+    (utils/repeatedly-call #(apply f args))))
+
