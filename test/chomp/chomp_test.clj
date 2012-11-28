@@ -34,3 +34,17 @@
   (named? [{:name true} {:name "a"}]) => true
   (named? []) => true
   (named? [{}{:name "something"}]) => false)
+
+(fact "bit-struct works"
+  (bit-struct handshake
+    [len :byte]
+    [protocol :len/bytes]
+    [reserved :8/bytes]
+    [payload :bytes])
+
+  (:named? handshake) => true
+  (:data handshake) => vector?
+  (:data handshake) => [{:type :byte :name :len :length 1}
+                        {:type :byte :name :protocol :length :len}
+                        {:type :byte :name :reserved :length 8}
+                        {:type :byte :name :payload :length nil}])
