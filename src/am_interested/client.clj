@@ -38,7 +38,7 @@
 (defn to-ip-and-port
   [s]
   (let [[ip [a b]] (partition-all 4 (map int s))]
-    {:ip (string/join "." ip)
+    {:ip (string/join "." (reverse ip))
      :port (+ b (* 256 a))}))
 
 (defn prep-peers

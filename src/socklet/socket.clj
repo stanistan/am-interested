@@ -1,6 +1,7 @@
 (ns socklet.socket
   (:refer-clojure :exclude [read])
-  (:import [java.net ServerSocket Socket]))
+  (:import [java.net ServerSocket Socket])
+  (:require [socklet.event :as event]))
 
 (defn create-server
   [port]
@@ -53,9 +54,5 @@
   [input f]
   (f (read-byte-stream input)))
 
-(defn listen
-  [input f]
-  (future
-    (loop []
-      (read-and-handle-byte-stream input f)
-      (recur))))
+(def listen
+  (partial event/listen-for read-and-handle-byte-stream))
