@@ -1,6 +1,7 @@
 (ns am-interested.utils
   (:require [clojure.walk :as walk]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [am-interested.config :as config]))
 
 (defn apply-if
   "Applies f to val if (pred val) is truthy. Otherwise,
@@ -54,10 +55,13 @@
 (defn decode-in [type s]
   (java.net.URLDecoder/decode s type))
 
+(def str-encode (partial encode-in (config/consts :str-encoding)))
+(def str-decode (partial decode-in (config/consts :str-encoding)))
+
 (def iso-encode (partial encode-in "ISO-8859-1"))
 (def utf-encode (partial encode-in "UTF-8"))
 
-(def iso-decode (partial decode-in "ISO_8859-1"))
+(def iso-decode (partial decode-in "ISO-8859-1"))
 (def utf-decode (partial decode-in "UTF-8"))
 
 (defn gen-id []

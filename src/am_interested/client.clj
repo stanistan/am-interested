@@ -2,18 +2,21 @@
   (:require [am-interested.utils :as utils]
             [bencode.bencode :as bencode]
             [clj-http.client :as request]
+            [am-interested.config :as config]
             [clojure.string :as string]))
+
+(def peer-id (utils/gen-id))
 
 (defn tracker-request
   "Makes a request to a tracker given a map of query-params. Exceptions
   are not thrown from the request. Req/res will be encoded and decoded using
   ISO-8859-1 instead of UTF-8."
   [url query-params]
-  (with-redefs [clj-http.util/url-encode utils/iso-encode
-                clj-http.util/url-decode utils/iso-decode]
+  (with-redefs [clj-http.util/url-encode utils/str-encode
+                clj-http.util/url-decode utils/str-decode]
     (request/get url {:query-params (utils/stringify-keys query-params)
                       :throw-exceptions false
-                      :as "ISO-8859-1"})))
+                      :as (config/consts :str-encoding)})))
 
 (defn get-info-hash
   [metainfo]
@@ -28,8 +31,8 @@
   [metainfo-map]
   (let [info-hash (get-info-hash metainfo-map)]
     {:info_hash info-hash
-     :peer_id (utils/gen-id)
-     :port 6881
+     :peer_id peer-id
+     :port (config/opts :port)
      :uploaded 0
      :downloaded 0
      :left (get-in metainfo-map [:info :length])
