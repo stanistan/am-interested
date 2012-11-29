@@ -15,6 +15,14 @@
   Long
   (to-bytes [l] (byte-array [(byte l)])))
 
+(defmulti convert-to-type
+  (fn [spec data]
+    (:type spec)))
+
+(defmethod convert-to-type :byte
+  [spec data]
+  (to-bytes data))
+
 (defn plural?
   [s]
   (= (last s) \s))
@@ -59,6 +67,35 @@
   (let [s (mapv prep-conf bit-specs)]
     {:named? (named? s)
      :data s}))
+
+(defn valid-length?
+  [matched specified given]
+  (cond (integer? specified) (= specified given)
+        (keyword? specified) (= (first (:value (utils/find-in matched :name specified)))
+                                given)
+        (nil? specified) true
+        :else false))
+
+(defn match-pair
+  [matched [spec data]]
+  (let [converted (convert-to-type spec data)]
+    (when (valid-length? matched (:length spec) (count converted))
+      (conj matched (assoc spec :value converted)))))
+
+(defn encode*
+  [specs data]
+  (let [pairs (map vector (:data specs) data)]
+    (loop [matched [] pairs pairs]
+      (if (seq pairs)
+        (if-let [matched (match-pair matched (first pairs))]
+          (recur matched (rest pairs))
+          (throw (Exception. (str "encoding failed: " (first pairs)))))
+        matched))))
+
+(defn encode
+  [specs & data]
+  (let [values (encode* specs data)]
+    (byte-array (apply concat (map :value values)))))
 
 (defmacro bit-struct
   [n & bit-specs]

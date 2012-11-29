@@ -40,13 +40,13 @@
   (named? []) => true
   (named? [{}{:name "something"}]) => false)
 
-(fact "bit-struct works"
-  (bit-struct handshake
-    [len :byte]
-    [protocol :len/bytes]
-    [reserved :8/bytes]
-    [payload :bytes])
+(bit-struct handshake
+  [len :byte]
+  [protocol :len/bytes]
+  [reserved :8/bytes]
+  [payload :bytes])
 
+(fact "bit-struct works"
   (:named? handshake) => true
   (:data handshake) => vector?
   (:data handshake) => [{:type :byte :name :len :length 1}
@@ -59,3 +59,22 @@
   (to-bytes 1) => (vectorize (byte-array [(byte 1)]))
   (to-bytes 23) => (vectorize (byte-array [(byte 23)]))
   (to-bytes (byte-array [(byte 23)])) => (vectorize (byte-array [(byte 23)])))
+
+(fact "valid-length? makes sure that the given length satisfies the constraints"
+  (def matched-stub [{:name :len :value (byte-array [(byte 3)])}])
+  (valid-length? [] 3 3) => true
+  (valid-length? [] 1 2) => false
+  (valid-length? [] nil 10) => true
+  (valid-length? [] "abc" :foo) => false
+  (valid-length? [] 'a :b) => false
+  (valid-length? matched-stub :len 3) => true
+  (valid-length? matched-stub :len 4) => false
+  (valid-length? matched-stub :foo 4) => false)
+
+(fact "encode"
+
+  (encode handshake 19 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
+  => (vectorize [19 66 105 116 84 111 114 114 101 110 116 32 112 114 111 116 111 99 111 108 0 0 0 0 0 0 0 0 102 111 111])
+
+  (encode handshake 18 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
+  => (throws))
