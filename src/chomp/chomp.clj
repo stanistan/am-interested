@@ -1,11 +1,5 @@
-(ns chomp.chomp)
-
-(defn find-in
-  "Finds a map in a vector which has key given the value."
-  [coll key value]
-  (letfn [(map-has-val [m v] (when (= (m key) v) m))
-          (check [a b] (or (map-has-val b value) a))]
-    (reduce check nil coll)))
+(ns chomp.chomp
+  (:require [chomp.utils :as utils]))
 
 (defn plural?
   [s]
@@ -62,7 +56,7 @@
 ;          {:name :1}]}
 
 ; (chomp/bit-struct handshake
-;   [len :byte]
+;   [len :byte :]
 ;   [protocol :len/bytes]
 ;   [reserved :8/bytes]
 ;   [payload :bytes])

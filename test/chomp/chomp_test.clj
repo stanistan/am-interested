@@ -2,10 +2,6 @@
   (:use [midje.sweet]
         [chomp.chomp]))
 
-(fact "about find-in, it looks for maps in vectors based on a key value match"
-  (find-in [{:a 1}] :a 1) => {:a 1}
-  (find-in [{:a 1 :b 2} {:a 2}] :a 1) => {:a 1 :b 2})
-
 (fact "singularize removes the trailing S from words"
   (singularize "facts") => "fact"
   (singularize "fact") => "fact")
