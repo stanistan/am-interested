@@ -1,5 +1,6 @@
 (ns chomp.chomp
-  (:require [chomp.utils :as utils]))
+  (:require [chomp.match :as match]
+            [chomp.utils :as utils]))
 
 (defn plural?
   [s]
@@ -24,11 +25,17 @@
      :type (keyword (singularize type))}))
 
 (defn prep-conf
-  [c]
-  (let [c (if (sequential? c) c [c])
-        s (first (filter symbol? c))
-        k (first (filter keyword? c))]
-    (assoc (key-info k) :name (keyword s))))
+  [bit-spec]
+  (match/destruct (utils/vectorify bit-spec)
+
+    [[symbol? name] [keyword? spec] [keyword? cast]]
+    (assoc (key-info spec) :name (keyword name) :cast cast)
+
+    [[symbol? name] [keyword? spec]]
+    (assoc (key-info spec) :name (keyword name))
+
+    [[keyword? spec]]
+    (key-info spec)))
 
 (defn named?
   [m]

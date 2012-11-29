@@ -11,3 +11,7 @@
   [v val]
   (let [i (.indexOf v val)]
     (when (not= -1 i) i)))
+
+(defn vectorify
+  [s]
+  (if (sequential? s) s [s]))
