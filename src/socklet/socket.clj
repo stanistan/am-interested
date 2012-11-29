@@ -32,7 +32,7 @@
 (defn write
   "Writes a string or a byte array to an output stream."
   [stream data]
-  (.write stream (if (string? data) (.getBytes string) data)))
+  (.write stream (if (string? data) (.getBytes data) data)))
 
 (defn read
   "Reads a byte from an input stream."
