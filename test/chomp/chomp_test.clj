@@ -26,8 +26,8 @@
   (key-info :name/bytes) => {:length :name :type :byte})
 
 (fact "about prep-conf, this sets up the data structure with a name"
-  (prep-conf :8/bytes) => {:length 8 :type :byte}
-  (prep-conf [:8/bytes]) => {:length 8 :type :byte}
+  (prep-conf :8/bytes) => {:length 8 :type :byte :name nil}
+  (prep-conf [:8/bytes]) => {:length 8 :type :byte :name nil}
   (prep-conf ['reserved :8/bytes]) => {:length 8 :type :byte :name :reserved})
 
 (fact "named? makes sure every map in a seq has a key :name"

@@ -3,9 +3,9 @@
 (defn find-in
   "Finds a map in a vector which has key given the value."
   [coll key value]
-  (letfn [(map-has-val? [m v] (= (m key) v))
-          (check [a b] (or a (if (map-has-val? b value) b) a))]
-    (or (reduce check false coll) {})))
+  (letfn [(map-has-val [m v] (when (= (m key) v) m))
+          (check [a b] (or (map-has-val b value) a))]
+    (reduce check nil coll)))
 
 (defn plural?
   [s]
@@ -17,14 +17,15 @@
 
 (defn parse-prefix
   [s]
-  (let [prefix (if ((complement empty?) s) (or (read-string s) nil) nil)]
-    (cond (integer? prefix) prefix
-          (nil? prefix) nil
-          :else (keyword prefix))))
+  (when-let [prefix (when (not (empty? s)) (read-string s))]
+    (if (integer? prefix)
+      prefix
+      (keyword prefix))))
 
 (defn key-info
   [k]
-  (let [[length type] [(parse-prefix (namespace k)) (name k)]]
+  (let [length (parse-prefix (namespace k))
+        type (name k)]
     {:length (if (plural? type) length 1)
      :type (keyword (singularize type))}))
 
@@ -33,23 +34,21 @@
   (let [c (if (sequential? c) c [c])
         s (first (filter symbol? c))
         k (first (filter keyword? c))]
-    (merge (key-info k)
-           (if (nil? s) {}
-               {:name (keyword s)}))))
+    (assoc (key-info k) :name (keyword s))))
 
 (defn named?
   [m]
-  (every? #((complement nil?) (:name %)) m))
+  (every? :name m))
 
 (defn bit-struct*
-  [& ms]
-  (let [s (into [] (map prep-conf ms))]
+  [& bit-specs]
+  (let [s (mapv prep-conf bit-specs)]
     {:named? (named? s)
      :data s}))
 
 (defmacro bit-struct
-  [n & args]
-  (let [info (apply bit-struct* (into [] args))]
+  [n & bit-specs]
+  (let [info (apply bit-struct* bit-specs)]
     `(def ~n ~info)))
 
 ; [len :10/bytes]
