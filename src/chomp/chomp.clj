@@ -2,6 +2,19 @@
   (:require [chomp.match :as match]
             [chomp.utils :as utils]))
 
+(defprotocol Byteable
+  (to-bytes [this] "Convert to an array of bytes."))
+
+(extend-protocol Byteable
+  (Class/forName "[B")  ;ByteArray
+  (to-bytes [s] s)
+
+  String
+  (to-bytes [s] (.getBytes s))
+
+  Long
+  (to-bytes [l] (byte-array [(byte l)])))
+
 (defn plural?
   [s]
   (= (last s) \s))

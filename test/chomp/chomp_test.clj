@@ -2,6 +2,10 @@
   (:use [midje.sweet]
         [chomp.chomp]))
 
+(defn vectorize
+  [check-on]
+  (fn [byte-array] (= (vec check-on) (vec byte-array))))
+
 (fact "singularize removes the trailing S from words"
   (singularize "facts") => "fact"
   (singularize "fact") => "fact")
@@ -49,3 +53,9 @@
                         {:type :byte :name :protocol :length :len}
                         {:type :byte :name :reserved :length 8}
                         {:type :byte :name :payload :length nil}])
+
+(fact "Byteable protocol"
+  (to-bytes "abcde") => (vectorize (byte-array (map byte [97 98 99 100 101])))
+  (to-bytes 1) => (vectorize (byte-array [(byte 1)]))
+  (to-bytes 23) => (vectorize (byte-array [(byte 23)]))
+  (to-bytes (byte-array [(byte 23)])) => (vectorize (byte-array [(byte 23)])))
