@@ -30,9 +30,9 @@
   (.available input-stream))
 
 (defn write
-  "Writes a string to an output stream."
-  [stream string]
-  (.write stream (.getBytes string)))
+  "Writes a string or a byte array to an output stream."
+  [stream data]
+  (.write stream (if (string? data) (.getBytes string) data)))
 
 (defn read
   "Reads a byte from an input stream."
