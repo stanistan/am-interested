@@ -4,7 +4,7 @@
 
 (defn vectorize
   [check-on]
-  (fn [byte-array] (= (vec check-on) (vec byte-array))))
+  (fn [sequence] (= (vec check-on) (vec sequence))))
 
 (fact "singularize removes the trailing S from words"
   (singularize "facts") => "fact"
@@ -18,19 +18,19 @@
   (parse-prefix "0") => 0)
 
 (fact "key info parses keywords into more a data structure"
-  (key-info :abcs) => {:length nil :type :abc}
-  (key-info :byte) => {:length 1 :type :byte}
-  (key-info :1/bytes) => {:length 1 :type :byte}
-  (key-info :2/bytes) => {:length 2 :type :byte}
-  (key-info :$0/bytes) => {:length :$0 :type :byte}
-  (key-info :name/bytes) => {:length :name :type :byte})
+  (key-info :abcs) => (spec :length nil :type :abc)
+  (key-info :byte) => (spec :length 1 :type :byte)
+  (key-info :1/bytes) => (spec :length 1 :type :byte)
+  (key-info :2/bytes) => (spec :length 2 :type :byte)
+  (key-info :$0/bytes) => (spec :length :$0 :type :byte)
+  (key-info :name/bytes) => (spec :length :name :type :byte))
 
 (fact "about prep-conf, this sets up the data structure with a name"
-  (prep-conf :8/bytes) => {:length 8 :type :byte}
-  (prep-conf [:8/bytes]) => {:length 8 :type :byte}
-  (prep-conf ['reserved :8/bytes]) => {:length 8 :type :byte :name :reserved}
-  (prep-conf ['reserved :8/bytes 'String]) => {:length 8 :type :byte :name :reserved :cast 'String}
-  (prep-conf [:a :8/bytes 'String]) => {:length 8 :type :byte :name :a :cast 'String}
+  (prep-conf :8/bytes) => (spec :length 8 :type :byte)
+  (prep-conf [:8/bytes]) => (spec :length 8 :type :byte)
+  (prep-conf ['reserved :8/bytes]) => (spec :length 8 :type :byte :name :reserved)
+  (prep-conf ['reserved :8/bytes 'String]) => (spec :length 8 :type :byte :name :reserved :cast 'String)
+  (prep-conf [:a :8/bytes 'String]) => (spec :length 8 :type :byte :name :a :cast 'String)
   (prep-conf 'a) => nil
   (prep-conf ['n "abc"]) => nil
   (prep-conf ['a 'b]) => nil
@@ -40,7 +40,7 @@
 (fact "named? makes sure every map in a seq has a key :name"
   (named? [{:name true} {:name "a"}]) => true
   (named? []) => true
-  (named? [{}{:name "something"}]) => false)
+  (named? [{} {:name "something"}]) => false)
 
 (bit-struct handshake
   [len :byte]
@@ -50,11 +50,11 @@
 
 (fact "bit-struct works"
   (:named? handshake) => true
-  (:data handshake) => vector?
-  (:data handshake) => [{:type :byte :name :len :length 1}
-                        {:type :byte :name :protocol :length :len}
-                        {:type :byte :name :reserved :length 8}
-                        {:type :byte :name :payload :length nil}])
+  (:specs handshake) => vector?
+  (:specs handshake) => [(spec :type :byte :name :len :length 1)
+                         (spec :type :byte :name :protocol :length :len)
+                         (spec :type :byte :name :reserved :length 8)
+                         (spec :type :byte :name :payload :length nil)])
 
 (fact "Byteable protocol"
   (to-bytes "abcde") => (vectorize (byte-array (map byte [97 98 99 100 101])))

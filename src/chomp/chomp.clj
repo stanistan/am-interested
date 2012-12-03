@@ -23,7 +23,12 @@
   [spec data]
   (to-bytes data))
 
-(defrecord BitStruct [data named?])
+(defrecord Spec [name length type cast])
+
+(defn spec [& {:keys [name length type cast]}]
+  (->Spec name length type cast))
+
+(defrecord BitStruct [specs named?])
 
 (defn plural?
   [s]
@@ -44,8 +49,8 @@
   [k]
   (let [length (parse-prefix (namespace k))
         type (name k)]
-    {:length (if (plural? type) length 1)
-     :type (keyword (singularize type))}))
+    (spec :length (if (plural? type) length 1)
+          :type (keyword (singularize type)))))
 
 (defn prep-conf
   [bit-spec]
@@ -86,7 +91,7 @@
 
 (defn encode*
   [specs data]
-  (let [pairs (map vector (:data specs) data)]
+  (let [pairs (map vector (:specs specs) data)]
     (loop [matched [] pairs pairs]
       (if (seq pairs)
         (if-let [matched (match-pair matched (first pairs))]
@@ -108,7 +113,7 @@
 
 
 ; { :named
-;   :data [{:type :byte
+;   :specs [{:type :byte
 ;           :length 10
 ;           :name :len
 ;           :index}
