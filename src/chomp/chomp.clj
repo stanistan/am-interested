@@ -15,6 +15,22 @@
   Long
   (to-bytes [l] (byte-array [(byte l)])))
 
+(defmulti bytes->type
+  "Casts a byte-array to type cast."
+  (fn [cast bytes] cast))
+
+(defmethod bytes->type (Class/forName "[B")
+  [_ bytes]
+  bytes)
+
+(defmethod bytes->type String
+  [_ bytes]
+  (apply str (map (comp char int) bytes)))
+
+(defmethod bytes->type Long
+  [_ bytes]
+  (int (first bytes)))
+
 (defmulti convert-to-type
   (fn [spec data]
     (:type spec)))
@@ -104,10 +120,19 @@
   (let [values (encode* specs data)]
     (byte-array (apply concat (map :value values)))))
 
+(defn decode
+  "Accepts a bit-struct (specs) and a series of bytes and returns
+  a vector or a map if map? is truthy and the struct is named."
+  [specs bytes & [map?]]
+  (reduce (some-fn)))
+
 (defmacro bit-struct
   [n & bit-specs]
   (let [info (apply bit-struct* bit-specs)]
     `(def ~n ~info)))
+
+;; (decode handshake (encode handshake 5 "foooo" "other thing" "last thing"))
+;; => [5 "foooo" "other thing" "last thing"]
 
 ; [len :10/bytes]
 

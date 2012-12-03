@@ -14,6 +14,7 @@
 (defrecord Foo [x])
 
 (fact "about record cast-to"
+
       (defcast Foo String
         :forward (fn [f] (:x f))
         :backward (fn [s] (->Foo s)))
