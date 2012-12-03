@@ -100,3 +100,28 @@
     [[#(= 1 %) a] & rest]
     [:one rest])
   => [:one [2 3 4]])
+
+(fact "about matching on literals"
+  (destruct [1 2 3 4]
+    [[1 a] [2 b] c d]
+    :match)
+  => :match
+
+  (destruct [1 2 3 4]
+    [[1 a] [2 b] [4 c] d]
+    :m1
+
+    [[1 a] [2 b] [3 c] [4 d]]
+    :match)
+  => :match
+
+  (destruct [1 2 3 4]
+    [[#(> % 1) a] & rest]
+    :m1
+
+    [[1 a] [keyword? b] & rest]
+    :m2
+
+    [[1 a] & rest]
+    :match)
+  => :match)

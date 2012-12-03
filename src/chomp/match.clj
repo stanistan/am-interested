@@ -7,11 +7,15 @@
     `(>= (count ~sym) ~i)
     `(= (count ~sym) ~(count bindings))))
 
+(defn make-check
+  [[pred item]]
+  `(if (fn? ~pred) (~pred ~item) (= ~pred ~item)))
+
 (defn make-checks
   [sym bindings]
   (let [reducer (fn [acc form]
                     (if (vector? form)
-                      (conj acc (into () (reverse form)))
+                      (conj acc (make-check form))
                       acc))
         checks (reduce reducer () bindings)
         count-check (make-count-check sym bindings)]
