@@ -29,12 +29,13 @@
   (prep-conf :8/bytes) => {:length 8 :type :byte}
   (prep-conf [:8/bytes]) => {:length 8 :type :byte}
   (prep-conf ['reserved :8/bytes]) => {:length 8 :type :byte :name :reserved}
-  (prep-conf ['reserved :8/bytes :string]) => {:length 8 :type :byte :name :reserved :cast :string}
+  (prep-conf ['reserved :8/bytes 'String]) => {:length 8 :type :byte :name :reserved :cast 'String}
+  (prep-conf [:a :8/bytes 'String]) => {:length 8 :type :byte :name :a :cast 'String}
   (prep-conf 'a) => nil
   (prep-conf ['n "abc"]) => nil
   (prep-conf ['a 'b]) => nil
   (prep-conf ['a 'b 'c]) => nil
-  (prep-conf [:a :8/bytes :string]) => {:length 8 :type :byte :name :a :cast :string})
+  (prep-conf [:a :8/bytes :string]) => nil)
 
 (fact "named? makes sure every map in a seq has a key :name"
   (named? [{:name true} {:name "a"}]) => true

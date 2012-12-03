@@ -52,7 +52,7 @@
   (let [named? #(or (symbol? %) (keyword? %))]
     (match/destruct (utils/vectorify bit-spec)
 
-      [[named? name] [keyword? spec] [keyword? cast]]
+      [[named? name] [keyword? spec] [symbol? cast]]
       (assoc (key-info spec) :name (keyword name) :cast cast)
 
       [[named? name] [keyword? spec]]
