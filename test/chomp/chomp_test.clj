@@ -29,18 +29,13 @@
   (prep-conf :8/bytes) => (spec :length 8 :type :byte)
   (prep-conf [:8/bytes]) => (spec :length 8 :type :byte)
   (prep-conf ['reserved :8/bytes]) => (spec :length 8 :type :byte :name :reserved)
-  (prep-conf ['reserved :8/bytes 'String]) => (spec :length 8 :type :byte :name :reserved :cast 'String)
-  (prep-conf [:a :8/bytes 'String]) => (spec :length 8 :type :byte :name :a :cast 'String)
+  (prep-conf ['reserved :8/bytes 'String]) => (spec :length 8 :type :byte :name :reserved :cast String)
+  (prep-conf [:a :8/bytes 'String]) => (spec :length 8 :type :byte :name :a :cast String)
   (prep-conf 'a) => nil
   (prep-conf ['n "abc"]) => nil
   (prep-conf ['a 'b]) => nil
   (prep-conf ['a 'b 'c]) => nil
   (prep-conf [:a :8/bytes :string]) => nil)
-
-(fact "named? makes sure every map in a seq has a key :name"
-  (named? [{:name true} {:name "a"}]) => true
-  (named? []) => true
-  (named? [{} {:name "something"}]) => false)
 
 (bit-struct handshake
   [len :byte]

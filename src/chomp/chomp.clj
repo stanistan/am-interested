@@ -38,7 +38,7 @@
 (defn spec [& {:keys [name length type cast]}]
   (->Spec name length type cast))
 
-(defrecord BitStruct [specs named?])
+(defrecord BitStruct [specs named? castable?])
 
 ;; Helpers................................................................................
 
@@ -70,7 +70,7 @@
     (match/destruct (utils/vectorify bit-spec)
 
       [[named? name] [keyword? spec] [symbol? cast]]
-      (assoc (key-info spec) :name (keyword name) :cast cast)
+      (assoc (key-info spec) :name (keyword name) :cast (eval cast))
 
       [[named? name] [keyword? spec]]
       (assoc (key-info spec) :name (keyword name))
@@ -78,14 +78,15 @@
       [[keyword? spec]]
       (key-info spec))))
 
-(defn named?
-  [m]
-  (every? :name m))
-
 (defn bit-struct*
   [& bit-specs]
   (let [s (mapv prep-conf bit-specs)]
-    (->BitStruct s (named? s))))
+    (->BitStruct s (every? :name s) (every? :cast s))))
+
+(defmacro bit-struct
+  [n & bit-specs]
+  (let [struct (apply bit-struct* bit-specs)]
+    `(def ~n ~struct)))
 
 (defn valid-length?
   [matched specified given]
@@ -116,16 +117,62 @@
   (let [values (encode* specs data)]
     (byte-array (apply concat (map :value values)))))
 
+(declare decode decode*)
+
+(defn take-bytes
+  "Returns [taken rest] or nil if length is invalid."
+  [bytes length decoded & [from-end?]]
+  (let [[taker dropper] (if from-end? [take-last drop-last] [take drop])]
+    (cond (integer? length) [(taker length bytes) (dropper length bytes)]
+          (keyword? length) (recur bytes
+                                   (:value (utils/find-in decoded :name length))
+                                   decoded
+                                   from-end?)
+          (nil? length) [bytes []])))
+
+(defn forward-take
+  [decoded [{:keys [length cast] :as spec} & specs] bytes]
+  (let [[taken rest] (take-bytes bytes length decoded)
+        casted (cast/cast-to cast (byte-array taken))
+        decoded (conj decoded (assoc spec :value casted))]
+    [decoded specs rest]))
+
+(defn reverse-take
+  [decoded specs bytes]
+  (let [{:keys [length cast] :as spec} (last specs)
+        specs (butlast specs)
+        [taken rest] (take-bytes bytes length decoded :from-end)
+        casted (cast/cast-to cast (byte-array taken))]
+    (concat decoded (decode* specs rest) [(assoc spec :value casted)])))
+
+(defn decode*
+  "decode* takes a sequence of Specs, not a bit-struct"
+  [specs bytes]
+  (let [error (fn [specs bytes]
+                (Exception. (str "decoding failed: "
+                                 {:specs specs :bytes bytes})))]
+    (loop [decoded [] specs specs bytes bytes]
+      (cond (and (empty? specs) (empty? bytes))
+            decoded
+
+            (or (empty? specs) (empty? bytes))
+            (throw (error specs bytes))
+
+            :else
+            (let [length (-> specs first :length)
+                  [decoded specs bytes] (if (and (not= 1 (count specs)) (nil? length))
+                                          (reverse-take decoded specs bytes)
+                                          (forward-take decoded specs bytes))]
+              (recur decoded specs bytes))))))
+
 (defn decode
   "Accepts a bit-struct (specs) and a series of bytes and returns
   a vector or a map if map? is truthy and the struct is named."
-  [specs bytes & [map?]]
-  (reduce (some-fn)))
+  [struct bytes & [map?]]
+  (when-not (:castable? struct)
+    (throw (Exception. (str "decoding failed: bit-struct not castable."))))
+  (decode* (:specs struct) bytes))
 
-(defmacro bit-struct
-  [n & bit-specs]
-  (let [info (apply bit-struct* bit-specs)]
-    `(def ~n ~info)))
 
 ;; (decode handshake (encode handshake 5 "foooo" "other thing" "last thing"))
 ;; => [5 "foooo" "other thing" "last thing"]
