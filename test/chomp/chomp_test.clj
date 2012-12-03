@@ -73,8 +73,13 @@
   (valid-length? matched-stub :len 4) => false
   (valid-length? matched-stub :foo 4) => false)
 
-(fact "encode"
+(fact "Castable protocol"
+      (bytes->type String (to-bytes "hello")) => "hello"
+      (bytes->type Long (to-bytes 10)) => 10
+      (bytes->type (Class/forName "[B") (byte-array (repeat 8 (byte 0))))
+      => (vectorize (repeat 8 0)))
 
+(fact "encode"
   (encode handshake 19 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
   => (vectorize [19 66 105 116 84 111 114 114 101 110 116 32 112 114 111 116 111 99 111 108 0 0 0 0 0 0 0 0 102 111 111])
 
