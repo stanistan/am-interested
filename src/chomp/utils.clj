@@ -3,7 +3,7 @@
 (defn find-in
   "Finds a map in a vector which has key given the value."
   [coll key value]
-  (letfn [(map-has-val [m v] (when (= (m key) v) m))
+  (letfn [(map-has-val [m v] (when (= (get m key) v) m))
           (check [a b] (or (map-has-val b value) a))]
     (reduce check nil coll)))
 
