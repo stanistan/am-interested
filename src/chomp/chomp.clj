@@ -49,16 +49,17 @@
 
 (defn prep-conf
   [bit-spec]
-  (match/destruct (utils/vectorify bit-spec)
+  (let [named? #(or (symbol? %) (keyword? %))]
+    (match/destruct (utils/vectorify bit-spec)
 
-    [[symbol? name] [keyword? spec] [keyword? cast]]
-    (assoc (key-info spec) :name (keyword name) :cast cast)
+      [[named? name] [keyword? spec] [keyword? cast]]
+      (assoc (key-info spec) :name (keyword name) :cast cast)
 
-    [[symbol? name] [keyword? spec]]
-    (assoc (key-info spec) :name (keyword name))
+      [[named? name] [keyword? spec]]
+      (assoc (key-info spec) :name (keyword name))
 
-    [[keyword? spec]]
-    (key-info spec)))
+      [[keyword? spec]]
+      (key-info spec))))
 
 (defn named?
   [m]
