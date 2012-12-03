@@ -23,6 +23,8 @@
   [spec data]
   (to-bytes data))
 
+(defrecord BitStruct [data named?])
+
 (defn plural?
   [s]
   (= (last s) \s))
@@ -65,8 +67,7 @@
 (defn bit-struct*
   [& bit-specs]
   (let [s (mapv prep-conf bit-specs)]
-    {:named? (named? s)
-     :data s}))
+    (->BitStruct s (named? s))))
 
 (defn valid-length?
   [matched specified given]
