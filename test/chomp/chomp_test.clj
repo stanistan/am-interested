@@ -56,11 +56,17 @@
                          (spec :type :byte :name :reserved :length 8)
                          (spec :type :byte :name :payload :length nil)])
 
-(fact "Byteable protocol"
-  (to-bytes "abcde") => (vectorize (byte-array (map byte [97 98 99 100 101])))
-  (to-bytes 1) => (vectorize (byte-array [(byte 1)]))
-  (to-bytes 23) => (vectorize (byte-array [(byte 23)]))
-  (to-bytes (byte-array [(byte 23)])) => (vectorize (byte-array [(byte 23)])))
+(fact "about casting to bytes protocol"
+  (type->bytes "abcde") => (vectorize (byte-array (map byte [97 98 99 100 101])))
+  (type->bytes 1) => (vectorize (byte-array [(byte 1)]))
+  (type->bytes 23) => (vectorize (byte-array [(byte 23)]))
+  (type->bytes (byte-array [(byte 23)])) => (vectorize (byte-array [(byte 23)])))
+
+(fact "about casting to things from bytes"
+  (bytes->type String (type->bytes "hello")) => "hello"
+  (bytes->type Long (type->bytes 10)) => 10
+  (bytes->type Bytes (byte-array (repeat 8 (byte 0))))
+  => (vectorize (repeat 8 0)))
 
 (fact "valid-length? makes sure that the given length satisfies the constraints"
   (def matched-stub [{:name :len :value (byte-array [(byte 3)])}])
@@ -72,12 +78,6 @@
   (valid-length? matched-stub :len 3) => true
   (valid-length? matched-stub :len 4) => false
   (valid-length? matched-stub :foo 4) => false)
-
-(fact "Castable protocol"
-      (bytes->type String (to-bytes "hello")) => "hello"
-      (bytes->type Long (to-bytes 10)) => 10
-      (bytes->type (Class/forName "[B") (byte-array (repeat 8 (byte 0))))
-      => (vectorize (repeat 8 0)))
 
 (fact "encode"
   (encode handshake 19 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")

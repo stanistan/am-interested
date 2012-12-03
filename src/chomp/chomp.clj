@@ -1,43 +1,37 @@
 (ns chomp.chomp
   (:require [chomp.match :as match]
-            [chomp.utils :as utils]))
+            [chomp.utils :as utils]
+            [chomp.cast :as cast]))
 
-(defprotocol Byteable
-  (to-bytes [this] "Convert to an array of bytes."))
+;; Casting and conversion helpers.........................................................
 
-(extend-protocol Byteable
-  (Class/forName "[B")  ;ByteArray
-  (to-bytes [s] s)
+(def Bytes (Class/forName "[B"))
 
-  String
-  (to-bytes [s] (.getBytes s))
+(cast/defcast Bytes String
+  :forward (fn [bs] (apply str (map (comp char int) bs)))
+  :backward (fn [s] (.getBytes s)))
 
-  Long
-  (to-bytes [l] (byte-array [(byte l)])))
+(cast/defcast Bytes Long
+  :forward (fn [bs] (int (first bs)))
+  :backward (fn [l] (byte-array [(byte l)])))
 
-(defmulti bytes->type
-  "Casts a byte-array to type cast."
-  (fn [cast bytes] cast))
+(defn type->bytes
+  [data]
+  (cast/cast-to Bytes data))
 
-(defmethod bytes->type (Class/forName "[B")
-  [_ bytes]
-  bytes)
-
-(defmethod bytes->type String
-  [_ bytes]
-  (apply str (map (comp char int) bytes)))
-
-(defmethod bytes->type Long
-  [_ bytes]
-  (int (first bytes)))
+(defn bytes->type
+  [type bytes]
+  (cast/cast-to type bytes))
 
 (defmulti convert-to-type
   (fn [spec data]
     (:type spec)))
 
 (defmethod convert-to-type :byte
-  [spec data]
-  (to-bytes data))
+  [_ data]
+  (cast/cast-to Bytes data))
+
+;; Spec/Struct typing.....................................................................
 
 (defrecord Spec [name length type cast])
 
@@ -45,6 +39,8 @@
   (->Spec name length type cast))
 
 (defrecord BitStruct [specs named?])
+
+;; Helpers................................................................................
 
 (defn plural?
   [s]
