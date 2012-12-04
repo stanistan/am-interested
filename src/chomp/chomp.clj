@@ -142,28 +142,25 @@
   (let [{:keys [length cast] :as spec} (last specs)
         specs (butlast specs)
         [taken rest] (take-bytes bytes length decoded :from-end)
-        casted (cast/cast-to cast (byte-array taken))]
-    (concat decoded (decode* specs rest) [(assoc spec :value casted)])))
+        casted (cast/cast-to cast (byte-array taken))
+        decoded (concat decoded (decode* specs rest) [(assoc spec :value casted)])]
+    [decoded [] []]))
+
+(defn decode-error
+  [specs bytes]
+  (Exception. (str "decoding failed: " {:specs specs :bytes bytes})))
 
 (defn decode*
   "decode* takes a sequence of Specs, not a bit-struct"
   [specs bytes]
-  (let [error (fn [specs bytes]
-                (Exception. (str "decoding failed: "
-                                 {:specs specs :bytes bytes})))]
-    (loop [decoded [] specs specs bytes bytes]
-      (cond (and (empty? specs) (empty? bytes))
-            decoded
-
-            (or (empty? specs) (empty? bytes))
-            (throw (error specs bytes))
-
-            :else
-            (let [length (-> specs first :length)
-                  [decoded specs bytes] (if (and (not= 1 (count specs)) (nil? length))
-                                          (reverse-take decoded specs bytes)
-                                          (forward-take decoded specs bytes))]
-              (recur decoded specs bytes))))))
+  (loop [decoded [] specs specs bytes bytes]
+    (cond (and (empty? specs) (empty? bytes)) decoded
+          (or (empty? specs) (empty? bytes)) (throw (decode-error specs bytes))
+          :else (let [length (-> specs first :length)
+                      reverse? (and (not= 1 (count specs)) (nil? length))
+                      taker (if reverse? reverse-take forward-take)
+                      [decoded specs bytes] (taker decoded specs bytes)]
+                  (recur decoded specs bytes)))))
 
 (defn decode
   "Accepts a bit-struct (specs) and a series of bytes and returns
