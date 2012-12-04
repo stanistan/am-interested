@@ -37,11 +37,11 @@
   (prep-conf ['a 'b 'c]) => nil
   (prep-conf [:a :8/bytes :string]) => nil)
 
-(bit-struct handshake
-  [len :byte Long]
-  [protocol :len/bytes String]
-  [reserved :8/bytes Bytes]
-  [payload :bytes Bytes])
+(def handshake (bit-struct
+                [:len :byte Long]
+                [:protocol :len/bytes String]
+                [:reserved :8/bytes Bytes]
+                [:payload :bytes Bytes]))
 
 (fact "bit-struct works"
   (:named? handshake) => true
@@ -81,11 +81,11 @@
   (encode handshake 18 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
   => (throws))
 
-(bit-struct enc
-  [len :byte Long]
-  [protocol :len/bytes String]
-  [payload :bytes String]
-  [eom :byte Long])
+(def enc (bit-struct
+          [:len :byte Long]
+          [:protocol :len/bytes String]
+          [:payload :bytes String]
+          [:eom :byte Long]))
 
 (fact "decode"
   (def data [10 "abcdeabcde" "the rest of the thing" 1])

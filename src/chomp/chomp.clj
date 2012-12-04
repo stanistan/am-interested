@@ -66,30 +66,28 @@
 
 (defn prep-conf
   [bit-spec]
-  (let [named? (some-fn symbol? keyword?)]
+  (let [named? (some-fn symbol? keyword?)
+        type? (some-fn symbol? #(= Class (type %)))]
     (match/destruct (utils/vectorify bit-spec)
 
-      [[named? name] [keyword? spec] [symbol? cast]]
+      [[named? name] [keyword? spec] [type? cast]]
       (assoc (key-info spec) :name (keyword name) :cast (eval cast))
 
       [[named? name] [keyword? spec]]
       (assoc (key-info spec) :name (keyword name) :cast Bytes)
 
-      [[keyword? spec] [symbol? cast]]
+      [[keyword? spec] [type? cast]]
       (assoc (key-info spec) :cast (eval cast))
 
       [[keyword? spec]]
       (assoc (key-info spec) :cast Bytes))))
 
-(defn bit-struct*
+(defn bit-struct
   [& bit-specs]
   (let [s (mapv prep-conf bit-specs)]
-    (->BitStruct s (every? :name s) (every? :cast s))))
-
-(defmacro bit-struct
-  [n & bit-specs]
-  (let [struct (apply bit-struct* bit-specs)]
-    `(def ~n ~struct)))
+    (if (every? identity s)
+      (->BitStruct s (every? :name s) (every? :cast s))
+      (throw (Exception. (str "Invalid bit-specs: " bit-specs))))))
 
 (defn find-length
   [specs name]
