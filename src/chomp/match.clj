@@ -19,7 +19,7 @@
                       acc))
         checks (reduce reducer () bindings)
         count-check (make-count-check sym bindings)]
-    `(and ~@checks ~count-check)))
+    `(and ~count-check ~@checks)))
 
 (defn get-syms
   [bindings]
