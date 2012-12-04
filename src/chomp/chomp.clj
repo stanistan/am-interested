@@ -156,16 +156,22 @@
           continue (if from-end? take-reverse take-forward)]
       (continue nspec rest-specs rest-bytes)))
 
-(defn decode-error
-  [specs bytes]
-  (Exception. (str "decoding failed: " {:specs specs :bytes bytes})))
+(defn error
+  [& s]
+  (Exception. (apply str s)))
+
+(def decode-error (partial error "decoding failed: "))
 
 (defn decode*
   "decode* takes a sequence of Specs, not a bit-struct"
   [specs bytes]
   (loop [decoded [] specs specs bytes bytes]
-    (cond (and (empty? specs) (empty? bytes)) decoded
-          (or (empty? specs) (empty? bytes)) (throw (decode-error specs bytes))
+    (cond (and (empty? specs) (empty? bytes))
+          decoded
+
+          (or (empty? specs) (empty? bytes))
+          (throw (decode-error {:specs specs :bytes bytes}))
+
           :else (let [length (-> specs first :length)
                       reverse? (and (not= 1 (count specs)) (nil? length))
                       [decoded specs bytes] (decode-taker decoded specs bytes reverse?)]
@@ -175,12 +181,14 @@
   "Accepts a bit-struct (specs) and a series of bytes and returns
   a vector or a map if map? is truthy and the struct is named."
   [struct bytes & [map?]]
-  (when-not (:castable? struct)
-    (throw (Exception. (str "decoding failed: bit-struct not castable."))))
-  (let [re (decode* (:specs struct) bytes)]
-    (if (and map? (:named? struct))
-      (reduce merge (map #(hash-map (:name %) (:value %)) re))
-      (map :value re))))
+  (letfn [(name-val-pairs [maps] (map (fn [{n :name v :value}] [n v]) maps))]
+    (if (and map? (not (:named? struct)))
+      (throw (decode-error "cannot return map unless bit-struct is named."))
+      (let [decoded (decode* (:specs struct) bytes)]
+        (if map?
+          (into {} (name-val-pairs decoded))
+          (mapv :value decoded))))))
+
 
 
 ;; (decode handshake (encode handshake 5 "foooo" "other thing" "last thing"))
