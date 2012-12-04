@@ -107,8 +107,8 @@
       (conj matched (assoc spec :value converted)))))
 
 (defn encode*
-  [specs data]
-  (let [pairs (map vector (:specs specs) data)]
+  [struct data]
+  (let [pairs (map vector (:specs struct) data)]
     (loop [matched [] pairs pairs]
       (if (seq pairs)
         (if-let [matched (match-pair matched (first pairs))]
@@ -117,9 +117,16 @@
         matched))))
 
 (defn encode
-  [specs & data]
-  (let [values (encode* specs data)]
-    (byte-array (apply concat (map :value values)))))
+  [struct & data]
+  (let [data (match/destruct data
+               [[map? data]]
+               (let [names (map :name (:specs struct))]
+                 (mapv data names))
+
+               [& data]
+               data)]
+    (let [values (encode* struct data)]
+      (byte-array (apply concat (map :value values))))))
 
 (declare decode decode*)
 

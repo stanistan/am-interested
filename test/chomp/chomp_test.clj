@@ -75,11 +75,21 @@
   (valid-length? matched-stub :foo 4) => false)
 
 (fact "encode"
+  (def result (vectorize [19 66 105 116 84 111 114 114 101 110 116
+                          32 112 114 111 116 111 99 111 108 0 0 0 0
+                          0 0 0 0 102 111 111]))
+
   (encode handshake 19 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
-  => (vectorize [19 66 105 116 84 111 114 114 101 110 116 32 112 114 111 116 111 99 111 108 0 0 0 0 0 0 0 0 102 111 111])
+  => result
 
   (encode handshake 18 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
-  => (throws))
+  => (throws)
+
+  (encode handshake {:len 19
+                     :protocol "BitTorrent protocol"
+                     :reserved (byte-array (repeat 8 (byte 0)))
+                     :payload "foo"})
+  => result)
 
 (fact "decode"
   (def enc (bitstruct
