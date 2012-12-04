@@ -8,9 +8,3 @@
 (fact "index-of returns the index or nil"
   (index-of [1 2 3 4] 2) => 1
   (index-of [:a :b :c] :d) => nil)
-
-(fact "padding bytes"
-  (map int (zero-padd-byte 4 4)) => [0 0 0 4]
-  (map int (zero-padd-byte 4 10)) => [0 0 1 0]
-  (map int (zero-padd-byte 4 101)) => [0 1 0 1]
-  (map int (zero-padd-byte 4 15)) => [0 0 1 5])

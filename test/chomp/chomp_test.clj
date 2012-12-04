@@ -1,6 +1,7 @@
 (ns chomp.chomp-test
   (:use [midje.sweet]
-        [chomp.chomp]))
+        [chomp.chomp]
+        [chomp.utils]))
 
 (defn vectorize
   [check-on]
@@ -38,7 +39,7 @@
   (prep-conf [:a :8/bytes :string]) => nil)
 
 (def handshake (bitstruct
-                [:len :byte Long]
+                [:len :4/bytes Long]
                 [:protocol :len/bytes String]
                 [:reserved :8/bytes Bytes]
                 [:payload :bytes Bytes]))
@@ -46,15 +47,15 @@
 (fact "bitstruct works"
   (:named? handshake) => true
   (:specs handshake) => vector?
-  (:specs handshake) => [(spec :type :byte :name :len :length 1 :cast Long)
-                         (spec :type :byte :name :protocol :length :len :cast String )
+  (:specs handshake) => [(spec :type :byte :name :len :length 4 :cast Long)
+                         (spec :type :byte :name :protocol :length :len :cast String)
                          (spec :type :byte :name :reserved :length 8 :cast Bytes)
                          (spec :type :byte :name :payload :length nil :cast Bytes)])
 
 (fact "about casting to bytes protocol"
   (type->bytes "abcde") => (vectorize (byte-array (map byte [97 98 99 100 101])))
-  (type->bytes 1) => (vectorize (byte-array [(byte 1)]))
-  (type->bytes 23) => (vectorize (byte-array [(byte 23)]))
+  (type->bytes 1) => (vectorize [0 0 0 1])
+  (type->bytes 23) => (vectorize [0 0 0 23])
   (type->bytes (byte-array [(byte 23)])) => (vectorize (byte-array [(byte 23)])))
 
 (fact "about casting to things from bytes"
@@ -65,6 +66,7 @@
 
 (fact "valid-length? makes sure that the given length satisfies the constraints"
   (def matched-stub [{:name :len :value (byte-array [(byte 3)])}])
+
   (valid-length? [] 3 3) => true
   (valid-length? [] 1 2) => false
   (valid-length? [] nil 10) => true
@@ -75,7 +77,7 @@
   (valid-length? matched-stub :foo 4) => false)
 
 (fact "encode"
-  (def result (vectorize [19 66 105 116 84 111 114 114 101 110 116
+  (def result (vectorize [0 0 0 19 66 105 116 84 111 114 114 101 110 116
                           32 112 114 111 116 111 99 111 108 0 0 0 0
                           0 0 0 0 102 111 111]))
 
@@ -93,10 +95,10 @@
 
 (fact "decode"
   (def enc (bitstruct
-            [:len :byte Long]
+            [:len :4/bytes Long]
             [:protocol :len/bytes String]
             [:payload :bytes String]
-            [:eom :byte Long]))
+            [:eom :4/bytes Long]))
 
   (def data [10 "abcdeabcde" "the rest of the thing" 1])
 
@@ -113,14 +115,14 @@
   (decode unnamed (encode unnamed 1) :as-map) => (throws))
 
 (def foobar-struct (bitstruct
-                    [:id :byte Long]
+                    [:id :4/bytes Long]
                     [:payload :bytes String]
-                    [:eom :byte Long]))
+                    [:eom :4/bytes Long]))
 
 (defbitstruct foobar
-  [id :byte Long]
+  [id :4/bytes Long]
   [payload :bytes String]
-  [eom :byte Long])
+  [eom :4/bytes Long])
 
 (fact "defbitstruct"
   foobar => foobar-struct

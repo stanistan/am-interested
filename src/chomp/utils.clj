@@ -20,8 +20,8 @@
 (def read-byte
   (comp byte read-string str))
 
-(defn zero-padd-byte
-  [length n]
-  (-> (str n)
-    (str-padd 0 length)
-    ((partial map read-byte))))
+(defn pad-with-zeros
+  [n bytes]
+  (let [zero (byte 0)
+        diff (- n (count bytes))]
+    (byte-array (concat (repeat diff zero) bytes))))

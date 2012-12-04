@@ -12,7 +12,14 @@
   [first second fn]
   `(defmethod cast-to* [~first ~second]
      [_# data#]
-     (~fn data#)))
+     (let [fn# ~fn
+           reducer# (fn [acc# cast#]
+                      (cast-to cast# acc#))
+           thread-casts# (fn [casts#]
+                           (reduce reducer# data# fn#))]
+       (if (fn? fn#)
+         (fn# data#)
+         (thread-casts# data#)))))
 
 (defmacro defcast
   "(defcast String Long

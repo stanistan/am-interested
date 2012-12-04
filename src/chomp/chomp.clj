@@ -1,19 +1,32 @@
 (ns chomp.chomp
   (:require [chomp.match :as match]
             [chomp.utils :as utils]
-            [chomp.cast :as cast]))
+            [chomp.cast :as cast])
+  (:import [java.nio ByteBuffer]))
 
 ;; Casting and conversion helpers.........................................................
 
 (def Bytes (Class/forName "[B"))
 
+(cast/defcast Bytes ByteBuffer
+  :forward (fn [bytes] (ByteBuffer/wrap (utils/pad-with-zeros 4 bytes)))
+  :backward (fn [buffer] (.array buffer)))
+
 (cast/defcast Bytes String
   :forward (fn [bs] (apply str (map (comp char int) bs)))
   :backward (fn [s] (.getBytes s)))
 
+(cast/defcast ByteBuffer String
+  :forward [Bytes String]
+  :backward [Bytes ByteBuffer])
+
+(cast/defcast ByteBuffer Long
+  :forward (fn [bb] (long (.getInt bb)))
+  :backward (fn [l] (.rewind (.putInt (java.nio.ByteBuffer/allocate 4) l))))
+
 (cast/defcast Bytes Long
-  :forward (fn [bs] (int (first bs)))
-  :backward (fn [l] (byte-array [(byte l)])))
+  :forward [ByteBuffer Long]
+  :backward [ByteBuffer Bytes])
 
 (defn type->bytes
   [data]
@@ -91,12 +104,13 @@
 
 (defn find-length
   [specs name]
-  (:value (utils/find-in specs :name name)))
+  (when-let [val (:value (utils/find-in specs :name name))]
+    (cast/cast-to Long val)))
 
 (defn valid-length?
   [matched specified given]
   (cond (integer? specified) (= specified given)
-        (keyword? specified) (= given (first (find-length matched specified)))
+        (keyword? specified) (= given (find-length matched specified))
         (nil? specified) true
         :else false))
 
@@ -143,18 +157,12 @@
   (let [fns (if from-end? [last butlast] [first rest])]
     (mapv #(% specs) fns)))
 
-(defn spec-with-value
-  [spec bytes]
-  (->> (byte-array bytes)
-    (cast/cast-to (:cast spec))
-    (assoc spec :value)))
-
 (defn decode-taker
   [decoded specs bytes & [from-end?]]
     (let [;; specs and bytes
           [spec rest-specs] (take-spec specs from-end?)
           [taken rest-bytes] (take-bytes bytes (:length spec) decoded from-end?)
-          nspec (spec-with-value spec taken)
+          nspec (assoc spec :value (byte-array taken))
           ;; continuation
           take-forward (fn [nspec specs bytes]
                             [(conj decoded nspec) specs bytes])
@@ -169,12 +177,22 @@
 
 (def decode-error (partial error "decoding failed: "))
 
+(defn spec-with-value
+  [spec bytes]
+  (->> bytes
+       (cast/cast-to (:cast spec))
+       (assoc spec :value)))
+
+(defn cast-all
+  [specs]
+  (mapv (fn [spec] (spec-with-value spec (:value spec))) specs))
+
 (defn decode*
   "decode* takes a sequence of Specs, not a bitstruct"
   [specs bytes]
   (loop [decoded [] specs specs bytes bytes]
     (cond (and (empty? specs) (empty? bytes))
-          decoded
+          (cast-all decoded)
 
           (or (empty? specs) (empty? bytes))
           (throw (decode-error {:specs specs :bytes bytes}))
