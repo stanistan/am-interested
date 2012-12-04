@@ -38,18 +38,18 @@
   (prep-conf [:a :8/bytes :string]) => nil)
 
 (bit-struct handshake
-  [len :byte]
-  [protocol :len/bytes]
-  [reserved :8/bytes]
-  [payload :bytes])
+  [len :byte Long]
+  [protocol :len/bytes String]
+  [reserved :8/bytes Bytes]
+  [payload :bytes Bytes])
 
 (fact "bit-struct works"
   (:named? handshake) => true
   (:specs handshake) => vector?
-  (:specs handshake) => [(spec :type :byte :name :len :length 1)
-                         (spec :type :byte :name :protocol :length :len)
-                         (spec :type :byte :name :reserved :length 8)
-                         (spec :type :byte :name :payload :length nil)])
+  (:specs handshake) => [(spec :type :byte :name :len :length 1 :cast Long)
+                         (spec :type :byte :name :protocol :length :len :cast String )
+                         (spec :type :byte :name :reserved :length 8 :cast Bytes)
+                         (spec :type :byte :name :payload :length nil :cast Bytes)])
 
 (fact "about casting to bytes protocol"
   (type->bytes "abcde") => (vectorize (byte-array (map byte [97 98 99 100 101])))
@@ -80,3 +80,21 @@
 
   (encode handshake 18 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
   => (throws))
+
+(bit-struct enc
+  [len :byte Long]
+  [protocol :len/bytes String]
+  [payload :bytes String]
+  [eom :byte Long])
+
+(fact "decode"
+  (def data [10 "abcdeabcde" "the rest of the thing" 1])
+
+  (mapv :value (decode enc (apply (partial encode enc) data)))
+  => data
+
+  (def handshake-data
+    [19 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo"]))
+
+  ; (mapv :value (decode handshake (apply (partial encode handshake) handshake-data)))
+  ; => (vectorize handshake-data))

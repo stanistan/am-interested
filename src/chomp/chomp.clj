@@ -124,27 +124,36 @@
   [bytes length decoded & [from-end?]]
   (let [[taker dropper] (if from-end? [take-last drop-last] [take drop])]
     (cond (integer? length) [(taker length bytes) (dropper length bytes)]
-          (keyword? length) (recur bytes
-                                   (:value (utils/find-in decoded :name length))
-                                   decoded
-                                   from-end?)
-          (nil? length) [bytes []])))
+          (nil? length) [bytes []]
+          (keyword? length) (take-bytes bytes
+                                        (:value (utils/find-in decoded :name length))
+                                        decoded
+                                        from-end?))))
 
-(defn forward-take
-  [decoded [{:keys [length cast] :as spec} & specs] bytes]
-  (let [[taken rest] (take-bytes bytes length decoded)
-        casted (cast/cast-to cast (byte-array taken))
-        decoded (conj decoded (assoc spec :value casted))]
-    [decoded specs rest]))
+(defn take-spec
+  [specs & [from-end?]]
+  (let [fns (if from-end? [last butlast] [first rest])]
+    (mapv #(% specs) fns)))
 
-(defn reverse-take
-  [decoded specs bytes]
-  (let [{:keys [length cast] :as spec} (last specs)
-        specs (butlast specs)
-        [taken rest] (take-bytes bytes length decoded :from-end)
-        casted (cast/cast-to cast (byte-array taken))
-        decoded (concat decoded (decode* specs rest) [(assoc spec :value casted)])]
-    [decoded [] []]))
+(defn spec-with-value
+  [spec bytes]
+  (->> (byte-array bytes)
+    (cast/cast-to (:cast spec))
+    (assoc spec :value)))
+
+(defn decode-taker
+  [decoded specs bytes & [from-end?]]
+    (let [;; specs and bytes
+          [spec rest-specs] (take-spec specs from-end?)
+          [taken rest-bytes] (take-bytes bytes (:length spec) decoded from-end?)
+          nspec (spec-with-value spec taken)
+          ;; continuation
+          take-forward (fn [nspec specs bytes]
+                            [(conj decoded nspec) specs bytes])
+          take-reverse (fn [nspec specs bytes]
+                            [(concat decoded (decode* specs bytes) [nspec] [] [])])
+          continue (if from-end? take-reverse take-forward)]
+      (continue nspec rest-specs rest-bytes)))
 
 (defn decode-error
   [specs bytes]
@@ -158,8 +167,7 @@
           (or (empty? specs) (empty? bytes)) (throw (decode-error specs bytes))
           :else (let [length (-> specs first :length)
                       reverse? (and (not= 1 (count specs)) (nil? length))
-                      taker (if reverse? reverse-take forward-take)
-                      [decoded specs bytes] (taker decoded specs bytes)]
+                      [decoded specs bytes] (decode-taker decoded specs bytes reverse?)]
                   (recur decoded specs bytes)))))
 
 (defn decode
