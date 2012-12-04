@@ -90,8 +90,14 @@
 (fact "decode"
   (def data [10 "abcdeabcde" "the rest of the thing" 1])
 
-  (mapv :value (decode enc (apply (partial encode enc) data)))
+  (decode enc (apply encode enc data))
   => data
+
+  (decode enc (apply encode enc data) :map)
+  => {:len 10
+      :protocol "abcdeabcde"
+      :payload "the rest of the thing"
+      :eom 1}
 
   (def handshake-data
     [19 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo"]))

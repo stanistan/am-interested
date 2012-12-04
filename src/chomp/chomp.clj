@@ -88,11 +88,14 @@
   (let [struct (apply bit-struct* bit-specs)]
     `(def ~n ~struct)))
 
+(defn find-length
+  [specs name]
+  (:value (utils/find-in specs :name name)))
+
 (defn valid-length?
   [matched specified given]
   (cond (integer? specified) (= specified given)
-        (keyword? specified) (= (first (:value (utils/find-in matched :name specified)))
-                                given)
+        (keyword? specified) (= given (first (find-length matched specified)))
         (nil? specified) true
         :else false))
 
@@ -123,12 +126,9 @@
   "Returns [taken rest] or nil if length is invalid."
   [bytes length decoded & [from-end?]]
   (let [[taker dropper] (if from-end? [take-last drop-last] [take drop])]
-    (cond (integer? length) [(taker length bytes) (dropper length bytes)]
-          (nil? length) [bytes []]
-          (keyword? length) (take-bytes bytes
-                                        (:value (utils/find-in decoded :name length))
-                                        decoded
-                                        from-end?))))
+    (cond (keyword? length) (take-bytes bytes (find-length decoded length) decoded from-end?)
+          (integer? length) [(taker length bytes) (dropper length bytes)]
+          (nil? length) [bytes []])))
 
 (defn take-spec
   [specs & [from-end?]]
@@ -176,7 +176,10 @@
   [struct bytes & [map?]]
   (when-not (:castable? struct)
     (throw (Exception. (str "decoding failed: bit-struct not castable."))))
-  (decode* (:specs struct) bytes))
+  (let [re (decode* (:specs struct) bytes)]
+    (if (and map? (:named? struct))
+      (reduce merge (map #(hash-map (:name %) (:value %)) re))
+      (map :value re))))
 
 
 ;; (decode handshake (encode handshake 5 "foooo" "other thing" "last thing"))
