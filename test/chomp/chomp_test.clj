@@ -37,13 +37,13 @@
   (prep-conf ['a 'b 'c]) => nil
   (prep-conf [:a :8/bytes :string]) => nil)
 
-(def handshake (bit-struct
+(def handshake (bitstruct
                 [:len :byte Long]
                 [:protocol :len/bytes String]
                 [:reserved :8/bytes Bytes]
                 [:payload :bytes Bytes]))
 
-(fact "bit-struct works"
+(fact "bitstruct works"
   (:named? handshake) => true
   (:specs handshake) => vector?
   (:specs handshake) => [(spec :type :byte :name :len :length 1 :cast Long)
@@ -81,13 +81,13 @@
   (encode handshake 18 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
   => (throws))
 
-(def enc (bit-struct
-          [:len :byte Long]
-          [:protocol :len/bytes String]
-          [:payload :bytes String]
-          [:eom :byte Long]))
-
 (fact "decode"
+  (def enc (bitstruct
+            [:len :byte Long]
+            [:protocol :len/bytes String]
+            [:payload :bytes String]
+            [:eom :byte Long]))
+
   (def data [10 "abcdeabcde" "the rest of the thing" 1])
 
   (decode enc (apply encode enc data))
@@ -99,8 +99,22 @@
       :payload "the rest of the thing"
       :eom 1}
 
-  (def handshake-data
-    [19 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo"]))
+  (def unnamed (bitstruct [:byte Long]))
+  (decode unnamed (encode unnamed 1) :as-map) => (throws))
 
-  ; (mapv :value (decode handshake (apply (partial encode handshake) handshake-data)))
-  ; => (vectorize handshake-data))
+(def foobar-struct (bitstruct
+                    [:id :byte Long]
+                    [:payload :bytes String]
+                    [:eom :byte Long]))
+
+(defbitstruct foobar
+  [id :byte Long]
+  [payload :bytes String]
+  [eom :byte Long])
+
+(fact "defbitstruct"
+  foobar => foobar-struct
+  (encode-foobar 1 "payload" 0) => (vectorize (encode foobar-struct 1 "payload" 0))
+  (decode-foobar (encode-foobar 1 "payload" 0)) => [1 "payload" 0]
+  (decode-foobar (encode-foobar 1 "payload" 0) :as-map)
+  => {:id 1 :payload "payload" :eom 0})

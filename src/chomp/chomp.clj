@@ -82,7 +82,7 @@
       [[keyword? spec]]
       (assoc (key-info spec) :cast Bytes))))
 
-(defn bit-struct
+(defn bitstruct
   [& bit-specs]
   (let [s (mapv prep-conf bit-specs)]
     (if (every? identity s)
@@ -163,7 +163,7 @@
 (def decode-error (partial error "decoding failed: "))
 
 (defn decode*
-  "decode* takes a sequence of Specs, not a bit-struct"
+  "decode* takes a sequence of Specs, not a bitstruct"
   [specs bytes]
   (loop [decoded [] specs specs bytes bytes]
     (cond (and (empty? specs) (empty? bytes))
@@ -178,41 +178,23 @@
                   (recur decoded specs bytes)))))
 
 (defn decode
-  "Accepts a bit-struct (specs) and a series of bytes and returns
+  "Accepts a bitstruct (specs) and a series of bytes and returns
   a vector or a map if map? is truthy and the struct is named."
   [struct bytes & [map?]]
   (letfn [(name-val-pairs [maps] (map (fn [{n :name v :value}] [n v]) maps))]
     (if (and map? (not (:named? struct)))
-      (throw (decode-error "cannot return map unless bit-struct is named."))
+      (throw (decode-error "cannot return map unless bitstruct is named."))
       (let [decoded (decode* (:specs struct) bytes)]
         (if map?
           (into {} (name-val-pairs decoded))
           (mapv :value decoded))))))
 
+(def with-prefix (comp symbol str))
 
-
-;; (decode handshake (encode handshake 5 "foooo" "other thing" "last thing"))
-;; => [5 "foooo" "other thing" "last thing"]
-
-; [len :10/bytes]
-
-
-; { :named
-;   :specs [{:type :byte
-;           :length 10
-;           :name :len
-;           :index}
-;          {:name :1}]}
-
-; (chomp/bit-struct handshake
-;   [len :byte :]
-;   [protocol :len/bytes]
-;   [reserved :8/bytes]
-;   [payload :bytes])
-
-; (->handshake 5 "BitTorrent protocol" (reserved-bytes) payload)
-
-; (map->handshake {:len 5
-;                  :protocol "BitTorrent protocol"
-;                  :reserved (reserved-bytes)
-;                  :payload payload})
+(defmacro defbitstruct
+  [n & bit-specs]
+  (let [struct (apply bitstruct bit-specs)]
+    `(do
+       (def ~n ~struct)
+       (def ~(with-prefix "encode-" n) ~(partial encode struct))
+       (def ~(with-prefix "decode-" n) ~(partial decode struct)))))
