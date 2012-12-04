@@ -1,13 +1,9 @@
 (ns am-interested.utils
+  (:use [utils.string :only [str-padd]]
+        [utils.fn :only [apply-if]])
   (:require [clojure.walk :as walk]
             [clojure.string :as string]
             [am-interested.config :as config]))
-
-(defn apply-if
-  "Applies f to val if (pred val) is truthy. Otherwise,
-  returns val."
-  [pred f val]
-  (if (pred val) (f val) val))
 
 (defn map-keys
   "Recursively maps a function onto the keys of a map."
@@ -27,16 +23,6 @@
 
 (def keywordize-keys (partial map-keys string->keyword))
 (def stringify-keys (partial map-keys keyword->string))
-
-(defn repeat-str
-  [s n]
-  (apply str (repeat n s)))
-
-(defn str-padd
-  [to-padd with l]
-  (let [c (count to-padd)
-        left (- l c)]
-    (str (repeat-str with left) to-padd)))
 
 (defn unicode-string
   [byte]

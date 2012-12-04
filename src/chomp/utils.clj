@@ -1,4 +1,5 @@
-(ns chomp.utils)
+(ns chomp.utils
+  (:use utils.string utils.fn))
 
 (defn find-in
   "Finds a map in a vector which has key given the value."
@@ -15,3 +16,12 @@
 (defn vectorify
   [s]
   (if (sequential? s) s [s]))
+
+(def read-byte
+  (comp byte read-string str))
+
+(defn zero-padd-byte
+  [length n]
+  (-> (str n)
+    (str-padd 0 length)
+    ((partial map read-byte))))

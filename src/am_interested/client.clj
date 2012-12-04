@@ -1,4 +1,5 @@
 (ns am-interested.client
+  (:use utils.string utils.fn)
   (:require [am-interested.utils :as utils]
             [bencode.bencode :as bencode]
             [clj-http.client :as request]
@@ -46,7 +47,7 @@
 
 (defn prep-peers
   [peers]
-  (utils/apply-if (complement vector?) #(mapv to-ip-and-port (partition 6 %)) peers))
+  (apply-if (complement vector?) #(mapv to-ip-and-port (partition 6 %)) peers))
 
 (defn request-torrent-info
   "Given the metainfo decoded from a .torrent file, makes a request
