@@ -26,9 +26,9 @@
   (key-info :name/bytes) => (spec :length :name :type :byte))
 
 (fact "about prep-conf, this sets up the data structure with a name"
-  (prep-conf :8/bytes) => (spec :length 8 :type :byte)
-  (prep-conf [:8/bytes]) => (spec :length 8 :type :byte)
-  (prep-conf ['reserved :8/bytes]) => (spec :length 8 :type :byte :name :reserved)
+  (prep-conf :8/bytes) => (spec :length 8 :type :byte :cast Bytes)
+  (prep-conf [:8/bytes]) => (spec :length 8 :type :byte :cast Bytes)
+  (prep-conf ['reserved :8/bytes]) => (spec :length 8 :type :byte :name :reserved :cast Bytes)
   (prep-conf ['reserved :8/bytes 'String]) => (spec :length 8 :type :byte :name :reserved :cast String)
   (prep-conf [:a :8/bytes 'String]) => (spec :length 8 :type :byte :name :a :cast String)
   (prep-conf 'a) => nil

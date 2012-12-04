@@ -66,17 +66,20 @@
 
 (defn prep-conf
   [bit-spec]
-  (let [named? #(or (symbol? %) (keyword? %))]
+  (let [named? (some-fn symbol? keyword?)]
     (match/destruct (utils/vectorify bit-spec)
 
       [[named? name] [keyword? spec] [symbol? cast]]
       (assoc (key-info spec) :name (keyword name) :cast (eval cast))
 
       [[named? name] [keyword? spec]]
-      (assoc (key-info spec) :name (keyword name))
+      (assoc (key-info spec) :name (keyword name) :cast Bytes)
+
+      [[keyword? spec] [symbol? cast]]
+      (assoc (key-info spec) :cast (eval cast))
 
       [[keyword? spec]]
-      (key-info spec))))
+      (assoc (key-info spec) :cast Bytes))))
 
 (defn bit-struct*
   [& bit-specs]
