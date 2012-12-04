@@ -132,9 +132,9 @@
 
 (defn take-bytes
   "Returns [taken rest] or nil if length is invalid."
-  [bytes length decoded & [from-end?]]
+  [bytes length decoded from-end?]
   (let [[taker dropper] (if from-end? [take-last drop-last] [take drop])]
-    (cond (keyword? length) (take-bytes bytes (find-length decoded length) decoded from-end?)
+    (cond (keyword? length) (recur bytes (find-length decoded length) decoded from-end?)
           (integer? length) [(taker length bytes) (dropper length bytes)]
           (nil? length) [bytes []])))
 
