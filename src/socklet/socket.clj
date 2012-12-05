@@ -62,3 +62,50 @@
   [server handler]
   (future
     (utils/repeatedly-call #(handler (accept server)))))
+
+(defprotocol CReadable
+  (read-from [ch]))
+
+(defprotocol CWritable
+  (write-to [ch]))
+
+(defprotocol CClosable
+  (channel-close [ch]))
+
+(defrecord Channel [socket in-stream out-stream futures]
+  CReadable
+  (read-from [ch] (.read in-stream))
+
+  CWritable
+  (write-to [ch] (.write out-stream))
+
+  CClosable
+  (channel-close [ch]
+    (map future-cancel @futures)
+    (close-socket socket)))
+
+(defn make-channel
+  [socket]
+  (let [[in out] (get-streams socket)]
+    (->Channel socket in out (atom []))))
+
+(defn start-server
+  [handler {:keys [port] :as opts}]
+  (let [server (create-server port)
+        conns {:server server :channels (atom [])}
+        handle-inc-conn (fn [socket]
+                          (let [ch (make-channel socket)]
+                            (swap! (:channels conns) conj ch)
+                            (handler ch)))]
+    (assoc conns :listener (server-listen server handle-inc-conn))))
+
+(defn respond-on
+  [ch handler]
+  (let [f (listen (:in-stream ch) handler)]
+    (swap! (:futures ch) conj f)))
+
+(defn close-all [{:keys [server listener channels] :as s}]
+  (future-cancel listener)
+  (close-socket server)
+  (map channel-close @channels)
+  true)
