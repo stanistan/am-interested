@@ -1,12 +1,14 @@
 (ns am-interested.client
   (:use utils.string utils.fn)
   (:require [am-interested.utils :as utils]
+            [socklet.utils :as sockutils]
             [bencode.bencode :as bencode]
             [clj-http.client :as request]
             [am-interested.config :as config]
             [clojure.string :as string]))
 
 (def peer-id (utils/gen-id))
+(def localhost (sockutils/localhost))
 
 (defn tracker-request
   "Makes a request to a tracker given a map of query-params. Exceptions
@@ -47,7 +49,7 @@
 (defn to-ip-and-port
   [s]
   (let [[ip [a b]] (partition-all 4 (map int s))]
-    {:ip (string/join "." (reverse ip))
+    {:ip (string/join "." ip)
      :port (+ b (* 256 a))}))
 
 (defn prep-peers
