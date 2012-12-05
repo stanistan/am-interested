@@ -13,20 +13,28 @@
   :backward (fn [buffer] (.array buffer)))
 
 (cast/defcast Bytes String
-  :forward (fn [bs] (apply str (map (comp char int) bs)))
-  :backward (fn [s] (.getBytes s)))
+  :forward (fn [bytes] (apply str (map (comp char int) bytes)))
+  :backward (fn [string] (.getBytes string)))
 
 (cast/defcast ByteBuffer String
   :forward [Bytes String]
   :backward [Bytes ByteBuffer])
 
 (cast/defcast ByteBuffer Long
-  :forward (fn [bb] (long (.getInt bb)))
-  :backward (fn [l] (.rewind (.putInt (java.nio.ByteBuffer/allocate 4) l))))
+  :forward (fn [buffer] (long (.getInt buffer)))
+  :backward (fn [long] (.rewind (.putInt (java.nio.ByteBuffer/allocate 4) long))))
 
 (cast/defcast Bytes Long
   :forward [ByteBuffer Long]
   :backward [ByteBuffer Bytes])
+
+(cast/defcast Byte Long
+  :forward (fn [byte] (long byte))
+  :backward (fn [long] (byte long)))
+
+(cast/defcast Bytes Byte
+  :forward first
+  :backward (fn [byte] (byte-array [byte])))
 
 (defn type->bytes
   [data]
@@ -41,8 +49,8 @@
     (:type spec)))
 
 (defmethod convert-to-type :byte
-  [_ data]
-  (cast/cast-to Bytes data))
+  [spec data]
+  (cast/cast-to Bytes (cast/cast-to (:cast spec) data)))
 
 ;; Spec/Struct typing.....................................................................
 
