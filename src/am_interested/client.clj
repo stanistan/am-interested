@@ -20,23 +20,28 @@
                       :as (config/consts :str-encoding)})))
 
 (defn get-info-hash
-  [metainfo]
-  (->> (:info metainfo)
+  [minfo]
+  (->> (get-in minfo [:original :info])
        (bencode/encode)
        (utils/sha1)
        (map utils/unicode-string)
        (apply str)))
 
+(defn get-total-length
+  [minfo]
+  (reduce + (map :length (get-in minfo [:normalized :info :files]))))
+
 (defn torrent->tracker-params
   "Does not handle optional keys atm."
-  [metainfo-map]
-  (let [info-hash (get-info-hash metainfo-map)]
+  [minfo event]
+  (let [info-hash (get-info-hash minfo)]
     {:info_hash info-hash
      :peer_id peer-id
      :port (config/opts :port)
+     :event (name event)
      :uploaded 0
      :downloaded 0
-     :left (get-in metainfo-map [:info :length])
+     :left (get-total-length minfo)
      :compact 1}))
 
 (defn to-ip-and-port
@@ -50,12 +55,12 @@
   (apply-if (complement vector?) #(mapv to-ip-and-port (partition 6 %)) peers))
 
 (defn request-torrent-info
-  "Given the metainfo decoded from a .torrent file, makes a request
+  "Given the minfo decoded from a .torrent file, makes a request
   to the tracker for torrent info."
-  [metainfo]
-  (-> (:announce metainfo)
-    (tracker-request (torrent->tracker-params metainfo))
-    (:body)
-    (bencode/decode)
-    (utils/keywordize-keys)
-    (update-in [:peers] prep-peers)))
+  [minfo event]
+  (-> (get-in minfo [:normalized :announce])
+      (tracker-request (torrent->tracker-params minfo event))
+      (:body)
+      (bencode/decode)
+      (utils/keywordize-keys)
+      (update-in [:peers] prep-peers)))
