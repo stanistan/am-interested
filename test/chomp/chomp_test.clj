@@ -114,6 +114,30 @@
   (def unnamed (bitstruct [:byte Long]))
   (decode unnamed (encode unnamed 1) :as-map) => (throws))
 
+(fact "str-to-fn takes an string that represents an arithmetic function
+       and returns that function."
+  ((str-to-fn "-1") 10) => 9
+  ((str-to-fn "+11") 1) => 12
+  ((str-to-fn "/10") 100) => 10
+  ((str-to-fn "*5") 5) => 25
+  (str-to-fn "ab") => (throws)
+  (str-to-fn "+a") => (throws)
+  (str-to-fn "a1") => (throws))
+
+(fact "split length takes a keyword representation of a length and returns its name
+       and transformation to apply"
+  ;(split-length :a/-1) => [:a #(- % 1)] how do you test equality on function expressions?
+  (split-length :a) => [:a identity])
+
+(fact "bitstruct can have a length defined that is relative to a named piece"
+  (def t (bitstruct
+          [:len :4/bytes Long]
+          [:thing :len/-1/bytes String]))
+  (def t-info [5 "abcd"])
+
+  (decode t (apply encode t t-info)) => t-info
+  (encode t 5 "abcde") => (throws))
+
 (def foobar-struct (bitstruct
                     [:id :4/bytes Long]
                     [:payload :bytes String]
