@@ -71,6 +71,12 @@
   [s]
   (if (plural? s) (apply str (butlast s)) s))
 
+(defn error
+  [& s]
+  (Exception. (apply str s)))
+
+(def decode-error (partial error "decoding failed: "))
+
 (defn parse-prefix
   [s]
   (when-let [prefix (when (not (empty? s)) (read-string s))]
@@ -110,10 +116,33 @@
       (->BitStruct s (every? :name s) (every? :cast s))
       (throw (Exception. (str "Invalid bit-specs: " bit-specs))))))
 
+(defn str-to-fn
+  "Takes an arithmetic expression string and creates a function from it.
+    Examples:
+      -10 =>  #(- % 10)
+      +1  =>  #(+ % 1)
+      *2  =>  #(* % 2)
+    Supports basic arithmetic functions."
+  [[f & n :as s]]
+  (let [f (symbol (str f))
+        n (read-string (apply str n))
+        ariths ['+ '- '* '/]]
+    (when-not (utils/index-of ariths f)
+      (throw (error "first piece needs to be an arithmetic fn: " ariths)))
+    (when-not (integer? n)
+      (throw (error "not a number: " n)))
+    (eval `(fn [v#] (~f v# ~n)))))
+
+(defn split-length
+  [k]
+  (let [[n trans] [(namespace k) (name k)]]
+    (if n [(keyword n) (str-to-fn trans)] [k identity])))
+
 (defn find-length
   [specs name]
-  (when-let [val (:value (utils/find-in specs :name name))]
-    (cast/cast-to Long val)))
+  (let [[name trans] (split-length name)]
+    (when-let [val (:value (utils/find-in specs :name name))]
+      (trans (cast/cast-to Long val)))))
 
 (defn valid-length?
   [matched specified given]
@@ -178,12 +207,6 @@
                             [(concat decoded (decode* specs bytes) [nspec] [] [])])
           continue (if from-end? take-reverse take-forward)]
       (continue nspec rest-specs rest-bytes)))
-
-(defn error
-  [& s]
-  (Exception. (apply str s)))
-
-(def decode-error (partial error "decoding failed: "))
 
 (defn spec-with-value
   [spec bytes]
