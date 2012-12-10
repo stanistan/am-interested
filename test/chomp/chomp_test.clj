@@ -56,8 +56,8 @@
 
 (fact "about casting to bytes protocol"
   (type->bytes "abcde") => (vectorize (byte-array (map byte [97 98 99 100 101])))
-  (type->bytes 1) => (vectorize [0 0 0 1])
-  (type->bytes 23) => (vectorize [0 0 0 23])
+  (type->bytes 1) => (vectorize [0 0 0 0 0 0 0 1])
+  (type->bytes 23) => (vectorize [0 0 0 0 0 0 0 23])
   (type->bytes (byte-array [(byte 23)])) => (vectorize (byte-array [(byte 23)])))
 
 (fact "about casting to things from bytes"
@@ -67,7 +67,9 @@
   => (vectorize (repeat 8 0)))
 
 (fact "valid-length? makes sure that the given length satisfies the constraints"
-  (def matched-stub [{:name :len :value (ByteBuffer/wrap (byte-array [(byte 3)]))}])
+  (def matched-stub [{:name :len
+                      :value (ByteBuffer/wrap (byte-array [(byte 3)]))
+                      :cast Byte}])
 
   (valid-length? [] 3 3) => true
   (valid-length? [] 1 2) => false

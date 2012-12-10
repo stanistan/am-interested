@@ -8,14 +8,17 @@
 
 (def Bytes (Class/forName "[B"))
 
-(defn num->buffer
-  [l num]
-  (.rewind (.put (ByteBuffer/allocate l) num)))
+(cast/defcast Long Short
+  :forward short
+  :backward long)
 
-(defn buffer->num
-  [cast buffer]
-  (let [bytes (utils/pad-with-zeros 4 (.array buffer))]
-    (cast (.getInt (ByteBuffer/wrap bytes)))))
+(cast/defcast Long Integer
+  :forward int
+  :backward long)
+
+(cast/defcast Integer Short
+  :forward short
+  :backward int)
 
 (cast/defcast Bytes ByteBuffer
   :forward (fn [bytes] (ByteBuffer/wrap bytes))
@@ -37,6 +40,14 @@
   :forward (fn [buffer] (int (.getInt buffer)))
   :backward (fn [int] (.rewind (.putInt (ByteBuffer/allocate 4) int))))
 
+(cast/defcast ByteBuffer Long
+  :forward (fn [buffer] (long (.getLong buffer)))
+  :backward (fn [long] (.rewind (.putLong (ByteBuffer/allocate 8) long))))
+
+(cast/defcast Bytes Long
+  :forward [ByteBuffer Long]
+  :backward [ByteBuffer Bytes])
+
 (cast/defcast Bytes Integer
   :forward [ByteBuffer Integer]
   :backward [ByteBuffer Bytes])
@@ -45,21 +56,25 @@
   :forward [ByteBuffer Short]
   :backward [ByteBuffer Bytes])
 
+(cast/defcast Byte Long
+  :forward long
+  :backward byte)
+
 (cast/defcast Byte Integer
-  :forward (fn [byte] (int byte))
-  :backward (fn [int] (byte int)))
+  :forward int
+  :backward byte)
 
 (cast/defcast Byte Short
-  :forward (fn [byte] (short byte))
-  :backward (fn [short] (byte short)))
+  :forward short
+  :backward byte)
 
 (cast/defcast Bytes Byte
   :forward first
   :backward (fn [byte] (byte-array [byte])))
 
-(cast/defcast Integer Short
-  :forward short
-  :backward int)
+(cast/defcast ByteBuffer Byte
+  :forward [Bytes Byte]
+  :backward [Bytes ByteBuffer])
 
 (defn type->bytes
   [data]
@@ -166,8 +181,8 @@
 (defn find-length
   [specs name]
   (let [[name trans] (split-length name)]
-    (when-let [val (:value (utils/find-in specs :name name))]
-      (trans (cast/cast-to Integer val)))))
+    (when-let [{val :value cast :cast} (utils/find-in specs :name name)]
+      (trans (cast/cast-to Long (cast/cast-to cast val))))))
 
 (defn valid-length?
   [matched specified given]
