@@ -9,7 +9,7 @@
 (def Bytes (Class/forName "[B"))
 
 (cast/defcast Bytes ByteBuffer
-  :forward (fn [bytes] (ByteBuffer/wrap (utils/pad-with-zeros 4 bytes)))
+  :forward (fn [bytes] (ByteBuffer/wrap bytes))
   :backward (fn [buffer] (.array buffer)))
 
 (cast/defcast Bytes String
@@ -21,8 +21,9 @@
   :backward [Bytes ByteBuffer])
 
 (cast/defcast ByteBuffer Long
-  :forward (fn [buffer] (long (.getInt buffer)))
-  :backward (fn [long] (.rewind (.putInt (java.nio.ByteBuffer/allocate 4) long))))
+  :forward (fn [buffer] (let [bytes (utils/pad-with-zeros 4 (.array buffer))]
+                          (long (.getInt (ByteBuffer/wrap bytes)))))
+  :backward (fn [long] (.rewind (.putInt (ByteBuffer/allocate 4) long))))
 
 (cast/defcast Bytes Long
   :forward [ByteBuffer Long]
@@ -101,13 +102,13 @@
       (assoc (key-info spec) :name (keyword name) :cast (eval cast))
 
       [[named? name] [keyword? spec]]
-      (assoc (key-info spec) :name (keyword name) :cast Bytes)
+      (assoc (key-info spec) :name (keyword name) :cast ByteBuffer)
 
       [[keyword? spec] [type? cast]]
       (assoc (key-info spec) :cast (eval cast))
 
       [[keyword? spec]]
-      (assoc (key-info spec) :cast Bytes))))
+      (assoc (key-info spec) :cast ByteBuffer))))
 
 (defn bitstruct
   [& bit-specs]

@@ -7,5 +7,7 @@
   (apply str (repeat n s)))
 
 (fact "about handshake"
-  (handshake {:info-hash (str-repeat 20 "a")
-              :peer-id (str-repeat 20 "b")}))
+  (let [encoded (handshake {:info-hash (str-repeat 20 "a")
+                            :peer-id (str-repeat 20 "b")})]
+    (handshake encoded)
+    => [19 "BitTorrent protocol" reserved-zeros (str-repeat 20 "a") (str-repeat 20 "b")]))

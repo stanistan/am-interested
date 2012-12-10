@@ -1,11 +1,12 @@
 (ns am-interested.peer-protocol
   (:use [chomp.chomp :only [defbitstruct]])
   (:require [am-interested.config :as config]
-            [chomp.chomp :as chomp]))
+            [chomp.chomp :as chomp]
+            [chomp.cast :as cast]))
 
 (def pstr (config/consts :protocol))
 (def pstrlen (long (count pstr))) ;; count returns an Integer.
-(def reserved-zeros (byte-array (repeat 8 (byte 0))))
+(def reserved-zeros (cast/cast-to java.nio.ByteBuffer (byte-array (repeat 8 (byte 0)))))
 
 (defn handle-struct
   [struct & [defaults]]
@@ -18,7 +19,7 @@
 (defbitstruct handshake-msg
   [pstrlen :byte Byte]
   [pstr :pstrlen/bytes String]
-  [reserved :8/bytes chomp/Bytes]
+  [reserved :8/bytes]
   [info-hash :20/bytes String]
   [peer-id :20/bytes String])
 
@@ -77,7 +78,7 @@
   [id :byte Byte]
   [index :4/bytes Long]
   [begin :4/bytes Long]
-  [block :len/-9/bytes chomp/Bytes])
+  [block :len/-9/bytes])
 
 (defn piece
   [data]

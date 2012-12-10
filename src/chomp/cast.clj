@@ -4,7 +4,7 @@
   (fn [cast data] [cast (type data)]))
 
 (defn cast-to [cast data]
-  (if (= (type data) cast)
+  (if (instance? cast data)
     data
     (cast-to* cast data)))
 

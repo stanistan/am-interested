@@ -1,7 +1,8 @@
 (ns chomp.chomp-test
   (:use [midje.sweet]
         [chomp.chomp]
-        [chomp.utils]))
+        [chomp.utils])
+  (:import [java.nio ByteBuffer]))
 
 (defn vectorize
   [check-on]
@@ -27,9 +28,9 @@
   (key-info :name/bytes) => (spec :length :name :type :byte))
 
 (fact "about prep-conf, this sets up the data structure with a name"
-  (prep-conf :8/bytes) => (spec :length 8 :type :byte :cast Bytes)
-  (prep-conf [:8/bytes]) => (spec :length 8 :type :byte :cast Bytes)
-  (prep-conf ['reserved :8/bytes]) => (spec :length 8 :type :byte :name :reserved :cast Bytes)
+  (prep-conf :8/bytes) => (spec :length 8 :type :byte :cast ByteBuffer)
+  (prep-conf [:8/bytes]) => (spec :length 8 :type :byte :cast ByteBuffer)
+  (prep-conf ['reserved :8/bytes]) => (spec :length 8 :type :byte :name :reserved :cast ByteBuffer)
   (prep-conf ['reserved :8/bytes 'String]) => (spec :length 8 :type :byte :name :reserved :cast String)
   (prep-conf [:a :8/bytes 'String]) => (spec :length 8 :type :byte :name :a :cast String)
   (prep-conf 'a) => nil
@@ -41,16 +42,16 @@
 (def handshake (bitstruct
                 [:len :4/bytes Long]
                 [:protocol :len/bytes String]
-                [:reserved :8/bytes Bytes]
-                [:payload :bytes Bytes]))
+                [:reserved :8/bytes ByteBuffer]
+                [:payload :bytes ByteBuffer]))
 
 (fact "bitstruct works"
   (:named? handshake) => true
   (:specs handshake) => vector?
   (:specs handshake) => [(spec :type :byte :name :len :length 4 :cast Long)
                          (spec :type :byte :name :protocol :length :len :cast String)
-                         (spec :type :byte :name :reserved :length 8 :cast Bytes)
-                         (spec :type :byte :name :payload :length nil :cast Bytes)])
+                         (spec :type :byte :name :reserved :length 8 :cast ByteBuffer)
+                         (spec :type :byte :name :payload :length nil :cast ByteBuffer)])
 
 (fact "about casting to bytes protocol"
   (type->bytes "abcde") => (vectorize (byte-array (map byte [97 98 99 100 101])))
@@ -65,7 +66,7 @@
   => (vectorize (repeat 8 0)))
 
 (fact "valid-length? makes sure that the given length satisfies the constraints"
-  (def matched-stub [{:name :len :value (byte-array [(byte 3)])}])
+  (def matched-stub [{:name :len :value (ByteBuffer/wrap (byte-array [(byte 3)]))}])
 
   (valid-length? [] 3 3) => true
   (valid-length? [] 1 2) => false
