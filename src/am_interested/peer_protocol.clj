@@ -1,43 +1,55 @@
 (ns am-interested.peer-protocol
-  (:use chomp.chomp)
-  (:require [am-interested.config :as config]))
+  (:use [chomp.chomp :only [defbitstruct]])
+  (:require [am-interested.config :as config]
+            [chomp.chomp :as chomp]))
 
 (def pstr (config/consts :protocol))
-(def pstrlen (count pstr))
+(def pstrlen (long (count pstr))) ;; count returns an Integer.
+(def reserved-zeros (byte-array (repeat 8 (byte 0))))
+
+(defn handle-struct
+  [struct & [defaults]]
+  (fn [& [data]]
+    ;; Data is a map, or it is nil and relies on defaults
+    (if (or (map? data) (nil? data))
+      (chomp/encode struct (merge defaults data))
+      (chomp/decode struct data))))
 
 (defbitstruct handshake-msg
   [pstrlen :byte Byte]
   [pstr :pstrlen/bytes String]
-  [reserved :8/bytes]
+  [reserved :8/bytes Bytes]
   [info-hash :20/bytes String]
   [peer-id :20/bytes String])
 
-(defn handshake
-  [m]
-  (encode-handshake-msg (merge {:pstrlen pstrlen :pstr pstr} m)))
+(def handshake (handle-struct handshake-msg {:pstrlen pstrlen
+                                             :pstr pstr
+                                             :reserved reserved-zeros}))
 
 (defbitstruct keep-alive-msg
   [len :4/bytes Long])
 
-(def keep-alive #(encode-keep-alive-msg 0))
+(def keep-alive (handle-struct keep-alive-msg {:len 0}))
 
 (defbitstruct simple-id
   [len :4/bytes Long]
   [id :byte Byte])
 
-(def choke #(encode-simple-id 1 0))
-(def unchoke #(encode-simple-id 1 1))
-(def interested #(encode-simple-id 1 2))
-(def not-interested #(encode-simple-id 1 3))
+(defn handle-simple-id
+  [id]
+  (handle-struct simple-id {:len 1 :id id}))
+
+(def choke (handle-simple-id 0))
+(def unchoke (handle-simple-id 1))
+(def interested (handle-simple-id 2))
+(def not-interested (handle-simple-id 3))
 
 (defbitstruct have-msg
   [len :4/bytes Long]
   [id :byte Byte]
   [piece-index :4/bytes Long])
 
-(defn have
-  [index]
-  (encode-have-msg 5 4 index))
+(def have (handle-struct have-msg {:len 5 :id 4}))
 
 (defbitstruct bitfield-msg
   [len :4/bytes Long]
@@ -45,8 +57,11 @@
   [bitfield :len/-1/bytes])
 
 (defn bitfield
-  [field]
-  (encode-bitfield-msg (inc (count field)) 5 field))
+  [data]
+  (if (map? data)
+    (let [{field :field} data]
+      (encode-bitfield-msg (inc (count field)) 5 field))
+    (decode-bitfield-msg data)))
 
 (defbitstruct request-msg
   [len :4/bytes Long]
@@ -55,7 +70,7 @@
   [begin :4/bytes Long]
   [length :4/bytes Long])
 
-(def request (partial encode-request-msg 13 6))
+(def request (handle-struct request-msg {:len 13 :id 6}))
 
 (defbitstruct piece-msg
   [len :4/bytes Long]
@@ -65,22 +80,24 @@
   [block :len/-9/bytes Bytes])
 
 (defn piece
-  [index begin block]
-  (encode-piece-msg (+ 9 (count block)) 7 index begin block))
+  [data]
+  (if (map? data)
+    (let [{:keys [index begin block]} data]
+      (encode-piece-msg (+ 9 (count block)) 7 index begin block))
+    (decode-piece-msg data)))
 
-(def cancel (partial encode-request-msg 13 8))
+(def cancel (handle-struct request-msg {:len 13 :id 8}))
 
 (defbitstruct port-msg
   [len :4/bytes Long]
-  [id :byte Bytes]
+  [id :byte Byte]
   [listen-port :2/bytes Long])
 
-(defn port
-  [port]
-  (encode-port-msg 3 (byte-array [(byte 9)]) port))
+(def port (handle-struct port-msg {:len 3 :id 9}))
 
 (def messages
-  {:keep-alive keep-alive
+  {:handshake handshake
+   :keep-alive keep-alive
    :choke choke
    :unchoke unchoke
    :interested interested
