@@ -7,5 +7,5 @@
   (apply str (repeat n s)))
 
 (fact "about handshake"
-      (handshake {:info-hash (str-repeat 20 "a")
-                  :peer-id (str-repeat 20 "b")}))
+  (handshake {:info-hash (str-repeat 20 "a")
+              :peer-id (str-repeat 20 "b")}))

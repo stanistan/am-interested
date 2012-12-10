@@ -18,7 +18,7 @@
 (defbitstruct handshake-msg
   [pstrlen :byte Byte]
   [pstr :pstrlen/bytes String]
-  [reserved :8/bytes Bytes]
+  [reserved :8/bytes chomp/Bytes]
   [info-hash :20/bytes String]
   [peer-id :20/bytes String])
 
@@ -77,7 +77,7 @@
   [id :byte Byte]
   [index :4/bytes Long]
   [begin :4/bytes Long]
-  [block :len/-9/bytes Bytes])
+  [block :len/-9/bytes chomp/Bytes])
 
 (defn piece
   [data]
