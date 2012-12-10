@@ -22,14 +22,14 @@
          (thread-casts# data#)))))
 
 (defmacro defcast
-  "(defcast String Long
+  "(defcast String Integer
      :forward (fn [s] (read-string s))
      :backward (fn [i] (str i)))
 
    (cast-to String 1) => \"1\"
    (cast-to String \"1\") => \"1\"
-   (cast-to Long \"1\") => 1
-   (cast-to Long 1) => 1"
+   (cast-to Integer \"1\") => 1
+   (cast-to Integer 1) => 1"
   [first second & {:keys [forward backward]}]
   (when-not (and forward backward)
     (throw (Exception. "defcast requires :forward and :backward.")))

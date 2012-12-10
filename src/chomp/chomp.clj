@@ -8,6 +8,15 @@
 
 (def Bytes (Class/forName "[B"))
 
+(defn num->buffer
+  [l num]
+  (.rewind (.put (ByteBuffer/allocate l) num)))
+
+(defn buffer->num
+  [cast buffer]
+  (let [bytes (utils/pad-with-zeros 4 (.array buffer))]
+    (cast (.getInt (ByteBuffer/wrap bytes)))))
+
 (cast/defcast Bytes ByteBuffer
   :forward (fn [bytes] (ByteBuffer/wrap bytes))
   :backward (fn [buffer] (.array buffer)))
@@ -20,22 +29,37 @@
   :forward [Bytes String]
   :backward [Bytes ByteBuffer])
 
-(cast/defcast ByteBuffer Long
-  :forward (fn [buffer] (let [bytes (utils/pad-with-zeros 4 (.array buffer))]
-                          (long (.getInt (ByteBuffer/wrap bytes)))))
-  :backward (fn [long] (.rewind (.putInt (ByteBuffer/allocate 4) long))))
+(cast/defcast ByteBuffer Short
+  :forward (fn [buffer] (short (.getShort buffer)))
+  :backward (fn [short] (.rewind (.putShort (ByteBuffer/allocate 2) short))))
 
-(cast/defcast Bytes Long
-  :forward [ByteBuffer Long]
+(cast/defcast ByteBuffer Integer
+  :forward (fn [buffer] (int (.getInt buffer)))
+  :backward (fn [int] (.rewind (.putInt (ByteBuffer/allocate 4) int))))
+
+(cast/defcast Bytes Integer
+  :forward [ByteBuffer Integer]
   :backward [ByteBuffer Bytes])
 
-(cast/defcast Byte Long
-  :forward (fn [byte] (long byte))
-  :backward (fn [long] (byte long)))
+(cast/defcast Bytes Short
+  :forward [ByteBuffer Short]
+  :backward [ByteBuffer Bytes])
+
+(cast/defcast Byte Integer
+  :forward (fn [byte] (int byte))
+  :backward (fn [int] (byte int)))
+
+(cast/defcast Byte Short
+  :forward (fn [byte] (short byte))
+  :backward (fn [short] (byte short)))
 
 (cast/defcast Bytes Byte
   :forward first
   :backward (fn [byte] (byte-array [byte])))
+
+(cast/defcast Integer Short
+  :forward short
+  :backward int)
 
 (defn type->bytes
   [data]
@@ -143,7 +167,7 @@
   [specs name]
   (let [[name trans] (split-length name)]
     (when-let [val (:value (utils/find-in specs :name name))]
-      (trans (cast/cast-to Long val)))))
+      (trans (cast/cast-to Integer val)))))
 
 (defn valid-length?
   [matched specified given]
@@ -178,7 +202,7 @@
                [& data]
                data)]
     (let [values (encode* struct data)]
-      (byte-array (apply concat (map :value values))))))
+      (cast/cast-to ByteBuffer (byte-array (apply concat (map :value values)))))))
 
 (declare decode decode*)
 
@@ -241,7 +265,8 @@
   (letfn [(name-val-pairs [maps] (map (fn [{n :name v :value}] [n v]) maps))]
     (if (and map? (not (:named? struct)))
       (throw (decode-error "cannot return map unless bitstruct is named."))
-      (let [decoded (decode* (:specs struct) bytes)]
+      (let [bytes (if (instance? ByteBuffer bytes) (.array bytes) bytes)
+            decoded (decode* (:specs struct) bytes)]
         (if map?
           (into {} (name-val-pairs decoded))
           (mapv :value decoded))))))

@@ -1,7 +1,8 @@
 (ns chomp.chomp-test
   (:use [midje.sweet]
         [chomp.chomp]
-        [chomp.utils])
+        [chomp.utils]
+        [utils.type])
   (:import [java.nio ByteBuffer]))
 
 (defn vectorize
@@ -40,7 +41,7 @@
   (prep-conf [:a :8/bytes :string]) => nil)
 
 (def handshake (bitstruct
-                [:len :4/bytes Long]
+                [:len :4/bytes Integer]
                 [:protocol :len/bytes String]
                 [:reserved :8/bytes ByteBuffer]
                 [:payload :bytes ByteBuffer]))
@@ -48,7 +49,7 @@
 (fact "bitstruct works"
   (:named? handshake) => true
   (:specs handshake) => vector?
-  (:specs handshake) => [(spec :type :byte :name :len :length 4 :cast Long)
+  (:specs handshake) => [(spec :type :byte :name :len :length 4 :cast Integer)
                          (spec :type :byte :name :protocol :length :len :cast String)
                          (spec :type :byte :name :reserved :length 8 :cast ByteBuffer)
                          (spec :type :byte :name :payload :length nil :cast ByteBuffer)])
@@ -78,9 +79,9 @@
   (valid-length? matched-stub :foo 4) => false)
 
 (fact "encode"
-  (def result (vectorize [0 0 0 19 66 105 116 84 111 114 114 101 110 116
-                          32 112 114 111 116 111 99 111 108 0 0 0 0
-                          0 0 0 0 102 111 111]))
+  (def result (buffer [0 0 0 19 66 105 116 84 111 114 114 101 110 116
+                       32 112 114 111 116 111 99 111 108 0 0 0 0
+                       0 0 0 0 102 111 111]))
 
   (encode handshake 19 "BitTorrent protocol" (byte-array (repeat 8 (byte 0))) "foo")
   => result
@@ -96,10 +97,10 @@
 
 (fact "decode"
   (def enc (bitstruct
-            [:len :4/bytes Long]
+            [:len :4/bytes Integer]
             [:protocol :len/bytes String]
             [:payload :bytes String]
-            [:eom :4/bytes Long]))
+            [:eom :4/bytes Integer]))
 
   (def data [10 "abcdeabcde" "the rest of the thing" 1])
 
@@ -112,7 +113,7 @@
       :payload "the rest of the thing"
       :eom 1}
 
-  (def unnamed (bitstruct [:byte Long]))
+  (def unnamed (bitstruct [:byte Integer]))
   (decode unnamed (encode unnamed 1) :as-map) => (throws))
 
 (fact "str-to-fn takes an string that represents an arithmetic function
@@ -132,7 +133,7 @@
 
 (fact "bitstruct can have a length defined that is relative to a named piece"
   (def t (bitstruct
-          [:len :4/bytes Long]
+          [:len :4/bytes Integer]
           [:thing :len/-1/bytes String]))
   (def t-info [5 "abcd"])
 
@@ -140,18 +141,18 @@
   (encode t 5 "abcde") => (throws))
 
 (def foobar-struct (bitstruct
-                    [:id :4/bytes Long]
+                    [:id :4/bytes Integer]
                     [:payload :bytes String]
-                    [:eom :4/bytes Long]))
+                    [:eom :4/bytes Integer]))
 
 (defbitstruct foobar
-  [id :4/bytes Long]
+  [id :4/bytes Integer]
   [payload :bytes String]
-  [eom :4/bytes Long])
+  [eom :4/bytes Integer])
 
 (fact "defbitstruct"
   foobar => foobar-struct
-  (encode-foobar 1 "payload" 0) => (vectorize (encode foobar-struct 1 "payload" 0))
+  (encode-foobar 1 "payload" 0) => (encode foobar-struct 1 "payload" 0)
   (decode-foobar (encode-foobar 1 "payload" 0)) => [1 "payload" 0]
   (decode-foobar (encode-foobar 1 "payload" 0) :as-map)
   => {:id 1 :payload "payload" :eom 0})
