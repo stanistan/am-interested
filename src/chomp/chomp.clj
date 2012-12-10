@@ -1,88 +1,71 @@
 (ns chomp.chomp
   (:require [chomp.match :as match]
-            [chomp.utils :as utils]
-            [chomp.cast :as cast])
+            [chomp.utils :as utils])
+  (:use [chomp.cast :only [defcast cast-to]])
   (:import [java.nio ByteBuffer]))
 
 ;; Casting and conversion helpers.........................................................
 
 (def Bytes (Class/forName "[B"))
 
-(cast/defcast Long Short
-  :forward short
-  :backward long)
+(defcast Number Long
+  :forward long)
 
-(cast/defcast Long Integer
-  :forward int
-  :backward long)
+(defcast Number Integer
+  :forward int)
 
-(cast/defcast Integer Short
-  :forward short
-  :backward int)
+(defcast Number Short
+  :forward short)
 
-(cast/defcast Bytes ByteBuffer
+(defcast Number Byte
+  :forward byte)
+
+(defcast Bytes ByteBuffer
   :forward (fn [bytes] (ByteBuffer/wrap bytes))
   :backward (fn [buffer] (.array buffer)))
 
-(cast/defcast Bytes String
+(defcast Bytes String
   :forward (fn [bytes] (apply str (map (comp char int) bytes)))
   :backward (fn [string] (.getBytes string)))
 
-(cast/defcast ByteBuffer String
-  :forward [Bytes String]
-  :backward [Bytes ByteBuffer])
-
-(cast/defcast ByteBuffer Short
-  :forward (fn [buffer] (short (.getShort buffer)))
-  :backward (fn [short] (.rewind (.putShort (ByteBuffer/allocate 2) short))))
-
-(cast/defcast ByteBuffer Integer
-  :forward (fn [buffer] (int (.getInt buffer)))
-  :backward (fn [int] (.rewind (.putInt (ByteBuffer/allocate 4) int))))
-
-(cast/defcast ByteBuffer Long
-  :forward (fn [buffer] (long (.getLong buffer)))
-  :backward (fn [long] (.rewind (.putLong (ByteBuffer/allocate 8) long))))
-
-(cast/defcast Bytes Long
-  :forward [ByteBuffer Long]
-  :backward [ByteBuffer Bytes])
-
-(cast/defcast Bytes Integer
-  :forward [ByteBuffer Integer]
-  :backward [ByteBuffer Bytes])
-
-(cast/defcast Bytes Short
-  :forward [ByteBuffer Short]
-  :backward [ByteBuffer Bytes])
-
-(cast/defcast Byte Long
-  :forward long
-  :backward byte)
-
-(cast/defcast Byte Integer
-  :forward int
-  :backward byte)
-
-(cast/defcast Byte Short
-  :forward short
-  :backward byte)
-
-(cast/defcast Bytes Byte
+(defcast Bytes Byte
   :forward first
   :backward (fn [byte] (byte-array [byte])))
 
-(cast/defcast ByteBuffer Byte
-  :forward [Bytes Byte]
-  :backward [Bytes ByteBuffer])
+(defcast ByteBuffer String
+  :through [Bytes])
+
+(defcast ByteBuffer Short
+  :forward (fn [buffer] (short (.getShort buffer)))
+  :backward (fn [short] (.rewind (.putShort (ByteBuffer/allocate 2) short))))
+
+(defcast ByteBuffer Integer
+  :forward (fn [buffer] (int (.getInt buffer)))
+  :backward (fn [int] (.rewind (.putInt (ByteBuffer/allocate 4) int))))
+
+(defcast ByteBuffer Long
+  :forward (fn [buffer] (long (.getLong buffer)))
+  :backward (fn [long] (.rewind (.putLong (ByteBuffer/allocate 8) long))))
+
+(defcast ByteBuffer Byte
+  :through [Bytes])
+
+(defcast Integer Bytes
+  :through [ByteBuffer])
+
+(defcast Short Bytes
+  :through [ByteBuffer])
+
+(defcast Long Bytes
+  :through [ByteBuffer])
 
 (defn type->bytes
   [data]
-  (cast/cast-to Bytes data))
+  (cast-to Bytes data))
 
 (defn bytes->type
   [type bytes]
-  (cast/cast-to type bytes))
+  (cast-to type bytes))
 
 (defmulti convert-to-type
   (fn [spec data]
@@ -90,7 +73,7 @@
 
 (defmethod convert-to-type :byte
   [spec data]
-  (cast/cast-to Bytes (cast/cast-to (:cast spec) data)))
+  (cast-to Bytes (cast-to (:cast spec) data)))
 
 ;; Spec/Struct typing.....................................................................
 
@@ -182,7 +165,7 @@
   [specs name]
   (let [[name trans] (split-length name)]
     (when-let [{val :value cast :cast} (utils/find-in specs :name name)]
-      (trans (cast/cast-to Long (cast/cast-to cast val))))))
+      (trans (cast-to Long (cast-to cast val))))))
 
 (defn valid-length?
   [matched specified given]
@@ -217,7 +200,7 @@
                [& data]
                data)]
     (let [values (encode* struct data)]
-      (cast/cast-to ByteBuffer (byte-array (apply concat (map :value values)))))))
+      (cast-to ByteBuffer (byte-array (apply concat (map :value values)))))))
 
 (declare decode decode*)
 
@@ -251,7 +234,7 @@
 (defn spec-with-value
   [spec bytes]
   (->> bytes
-       (cast/cast-to (:cast spec))
+       (cast-to (:cast spec))
        (assoc spec :value)))
 
 (defn cast-all

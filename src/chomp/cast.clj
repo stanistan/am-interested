@@ -21,6 +21,18 @@
          (fn# data#)
          (thread-casts# data#)))))
 
+(defn make-casts
+  [first second {:keys [forward backward]}]
+  `(do
+     ~(when backward (make-cast-method first second backward))
+     ~(when forward (make-cast-method second first forward))))
+
+(defn handle-through
+  [first second through]
+  (when through
+    {:forward (vec (concat through [second]))
+     :backward (vec (concat (reverse through) [first]))}))
+
 (defmacro defcast
   "(defcast String Integer
      :forward (fn [s] (read-string s))
@@ -30,9 +42,8 @@
    (cast-to String \"1\") => \"1\"
    (cast-to Integer \"1\") => 1
    (cast-to Integer 1) => 1"
-  [first second & {:keys [forward backward]}]
-  (when-not (and forward backward)
-    (throw (Exception. "defcast requires :forward and :backward.")))
-  `(do
-     ~(make-cast-method first second backward)
-     ~(make-cast-method second first forward)))
+  [first second & {:keys [forward backward through] :as casts}]
+  (when-not (or forward backward through)
+    (throw (Exception. "defcast requires :forward, :backward, or :through.")))
+  (let [casts (or (handle-through first second through) casts)]
+    (make-casts first second casts)))
