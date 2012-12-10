@@ -1,10 +1,11 @@
 (ns bencode.bencode
-  (:refer-clojure :exclude [num list]))
+  (:refer-clojure :exclude [num list])
+  (:import [java.io FileInputStream]))
 
 (defn file-stream
   [fname]
-  (let [stream (java.io.FileInputStream. fname)]
-    (letfn [(f [stream]
+  (let [stream (FileInputStream. fname)]
+    (letfn [(f [^FileInputStream stream]
               (lazy-seq
                 (let [b (.read stream)]
                   (when (not= -1 b)

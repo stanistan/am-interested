@@ -2,7 +2,8 @@
   (:require [chomp.match :as match]
             [chomp.utils :as utils])
   (:use [chomp.cast :only [defcast cast-to]])
-  (:import [java.nio ByteBuffer]))
+  (:import [java.nio ByteBuffer]
+           [java.lang Exception]))
 
 ;; Casting and conversion helpers.........................................................
 
@@ -22,11 +23,11 @@
 
 (defcast Bytes ByteBuffer
   :forward (fn [bytes] (ByteBuffer/wrap bytes))
-  :backward (fn [buffer] (.array buffer)))
+  :backward (fn [^ByteBuffer buffer] (.array buffer)))
 
 (defcast Bytes String
   :forward (fn [bytes] (apply str (map (comp char int) bytes)))
-  :backward (fn [string] (.getBytes string)))
+  :backward (fn [^String string] (.getBytes string)))
 
 (defcast Bytes Byte
   :forward first
@@ -36,15 +37,15 @@
   :through [Bytes])
 
 (defcast ByteBuffer Short
-  :forward (fn [buffer] (short (.getShort buffer)))
+  :forward (fn [^ByteBuffer buffer] (short (.getShort buffer)))
   :backward (fn [short] (.rewind (.putShort (ByteBuffer/allocate 2) short))))
 
 (defcast ByteBuffer Integer
-  :forward (fn [buffer] (int (.getInt buffer)))
+  :forward (fn [^ByteBuffer buffer] (int (.getInt buffer)))
   :backward (fn [int] (.rewind (.putInt (ByteBuffer/allocate 4) int))))
 
 (defcast ByteBuffer Long
-  :forward (fn [buffer] (long (.getLong buffer)))
+  :forward (fn [^ByteBuffer buffer] (long (.getLong buffer)))
   :backward (fn [long] (.rewind (.putLong (ByteBuffer/allocate 8) long))))
 
 (defcast ByteBuffer Byte

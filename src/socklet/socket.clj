@@ -1,6 +1,7 @@
 (ns socklet.socket
   (:refer-clojure :exclude [read])
-  (:import [java.net ServerSocket Socket])
+  (:import [java.net ServerSocket Socket]
+           [java.io InputStream OutputStream])
   (:require [socklet.event :as event]
             [socklet.utils :as utils]))
 
@@ -9,11 +10,11 @@
   (ServerSocket. port))
 
 (defn close-socket
-  [socket]
+  [^Socket socket]
   (.close socket))
 
 (defn accept
-  [server]
+  [^Socket server]
   (.accept server))
 
 (defn create-socket
@@ -22,21 +23,21 @@
 
 (defn get-streams
   "Returns a [input output] stream pair."
-  [socket]
+  [^Socket socket]
   [(.getInputStream socket) (.getOutputStream socket)])
 
 (defn read-available
-  [input-stream]
+  [^InputStream input-stream]
   (.available input-stream))
 
 (defn write
   "Writes a string or a byte array to an output stream."
-  [stream data]
+  [^OutputStream stream data]
   (.write stream (if (string? data) (.getBytes data) data)))
 
 (defn read
   "Reads a byte from an input stream."
-  [stream]
+  [^InputStream stream]
   (.read stream))
 
 (defn read-byte-stream
@@ -72,7 +73,10 @@
 (defprotocol CClosable
   (channel-close [ch]))
 
-(defrecord Channel [socket in-stream out-stream futures]
+(defrecord Channel [^Socket socket
+                    ^InputStream in-stream
+                    ^OutputStream out-stream
+                    futures]
   CReadable
   (read-from [ch] (.read in-stream))
 
